@@ -19,7 +19,7 @@ Implements `prd.md > The Core Journey`, `Treatment Detail and Entry`, and `Admin
 
 1. On launch, read saved settings and real database records. Show the welcome image/title, notification warning if needed, and enter button.
 2. The owner adds a pet. Validate its fields, import an optional photo, and save the pet. Offer its first treatment and explain the drawer briefly.
-3. First treatment entry requires medication, dose, actual date, and next due date. Copying previous details is unavailable without a previous administration. Save the administration and next plan together, then request its future reminders.
+3. First treatment entry requires medication, dose, and actual date; next due date is optional. Copying previous details is unavailable without a previous administration. Save the administration and optional next plan together, then request future reminders only for a plan. Without a date, save no plan and show “No next treatment selected; no reminders scheduled.”
 4. Home cards observe database changes and show the latest administered date plus the next planned date, including overdue plans and pets with no next treatment. Tapping a card opens that pet's treatment detail; prior records remain accessible within that detail.
 5. An Android alarm arrives with a plan ID, revision, and reminder kind. Reload the plan and ignore stale, completed, or already handled requests. If notifications are allowed, show the pet-specific reminder.
 6. Record treatment opens blank medication/dose/source fields, optional copy/photo, and a date picker defaulting to today. Save a new administration and complete the plan in one database transaction. Cancel all remaining alerts for that plan and remove its displayed notifications.
@@ -51,7 +51,7 @@ The learner raised Java 17 support lifetime as a concern. Target 17 is only the 
 
 The reason to retain output target 17 is Android toolchain compatibility, not a need to depend on an old JDK distribution. Raising the output target is possible only after checking Kotlin/AGP/D8 support; it is a separate choice from using a maintained JDK for builds. The target was accepted with final spec approval, including the build-JDK versus output-format clarification. [Android's explanation of JDK and compilation targets](https://developer.android.com/build/jdks).
 
-Slice 1 resolved baseline (2026-10-11): AGP 9.4.0, checksum-pinned Gradle 9.6.0, AGP built-in Kotlin 2.2.10 and matching Compose compiler plugin 2.2.10, Compose BOM 2026.09.00, Activity 1.13.0, Lifecycle 2.11.0, Core 1.19.1, DataStore 1.2.1, coroutines 1.11.0. JUnit 4.13.2, AndroidX test runner 1.7.0 and ext.junit 1.3.0 support the storage tests. These versions are pinned in `gradle/libs.versions.toml`. Room/KSP will be pinned when first used in slice 2. No separate Kotlin Android plugin is applied. See `build-step-1.md` for verification outcomes and device details.
+Slice 1 resolved baseline (2026-10-11): AGP 9.4.0, checksum-pinned Gradle 9.6.0, AGP built-in Kotlin 2.2.10 and matching Compose compiler plugin 2.2.10, Compose BOM 2026.09.00, Activity 1.13.0, Lifecycle 2.11.0, Core 1.19.1, DataStore 1.2.1, coroutines 1.11.0. JUnit 4.13.2, AndroidX test runner 1.7.0 and ext.junit 1.3.0 support the storage tests. These versions are pinned in `gradle/libs.versions.toml`. Slice 2 pins Room 2.8.5 and KSP 2.3.12; exported schema version 1 is retained under app/schemas. No separate Kotlin Android plugin is applied. See `build-step-1.md` for verification outcomes and device details.
 
 ## Where It Runs and How Someone Tries It
 
@@ -126,7 +126,7 @@ ViewModel holds form drafts across rotation and settings overlays. Prevent dupli
 
 Implements `prd.md > Administration Confirmation`, `Treatment Detail and Entry`, and `States and Boundaries`.
 
-The repository is the single writer for pets, administrations, and plans. DAO queries emit Flow so screens reflect committed changes. Validate fields before writes and enforce plan ownership. First entry inserts its administration and next plan in one Room transaction. Confirmation inserts a new administration and marks the matching plan completed atomically; never update an older medication record. Repeated taps/duplicate requests for an already completed plan must not insert another administration.
+The repository is the single writer for pets, administrations, and plans. DAO queries emit Flow so screens reflect committed changes. Validate fields before writes and enforce plan ownership. First entry inserts its administration and, if a date was supplied, its next plan in one Room transaction. No next date means no plan row. Later scheduling uses the most recent administration; editing validates the pending plan ID/revision, increments its revision only when the date changes, clears handled flags, preserves postponedOnce, and leaves administration history untouched. Reconciliation cancels old alarm identities and displayed notifications after a date change. Confirmation inserts a new administration and marks the matching plan completed atomically; never update an older medication record. Repeated taps/duplicate requests for an already completed plan must not insert another administration.
 
 Only one pending flea-treatment plan per pet in this POC. Scheduling a successor is a separate action after confirmation; its failure cannot roll back the already saved administration. Preserve old administrations and completed plans. Treatment detail lists prior administrations within the same surface, with expandable details/photo, while the main card shows the latest administered date. No separate history browsing screen is added.
 
@@ -196,7 +196,7 @@ Implements `prd.md > Administration Confirmation`, `Pet Record`, and `States and
 
 Use sourceAdministrationId to relate a pending plan to the last treatment, without storing its product as a promise about the next dose. The newly confirmed administration has a unique completedPlanId to prevent double confirmation. Completed plans retain their due date so the app can distinguish planned and actual dates. Copy looks up the same pet's latest administration by actualDate, then recordedAt/ID for ties, and copies only medication/dose/source.
 
-Enforce the approved form rules: trim/require pet name, medication, and dose text; optional source/photo; no future birth/administration dates; next due date strictly after its associated administration date. First entry requires next date; post-confirmation scheduling can be declined. Before confirmation, show explicit validation if a selected actual date precedes the plan's source administration, so history is not silently made inconsistent; this safeguard was accepted with final spec approval.
+Enforce the approved form rules: trim/require pet name, medication, and dose text; optional source/photo; no future birth/administration dates; next due date strictly after its associated administration date. First entry can omit the next date, and post-confirmation scheduling can be declined. A selected next date must be valid; no null-date plan is created. A no-date save shows the no-reminders message and leaves a Schedule next treatment action available in detail. Before confirmation, show explicit validation if a selected actual date precedes the plan's source administration, so history is not silently made inconsistent; this safeguard was accepted with final spec approval.
 
 ## File Structure
 
@@ -286,7 +286,7 @@ Implements `prd.md > Acceptance Criteria`.
 - UI walkthrough: settings/welcome customization, optional photos surviving restart, empty states, copy button only affecting the three agreed fields, notification denial permitting save, and no-next-plan state.
 - Demo evidence: record actual labeled notifications, postponement, a changed medication confirmation, and overdue case; reset and exit without touching real data or cancelling real alarms.
 - Separate physical-phone background evidence: schedule a short test alarm through the real scheduler, background the app/lock the screen, and observe delivery. Repeat cancellation/edit tests and reboot recovery where practical. Label any shortened test time as diagnostic; an in-app notification-preview button is not evidence of background delivery. Record device/API and observed delay; do not assert an exact deadline for inexact alarms.
-- Run assembleDebug, unit tests, lintDebug, and targeted connectedDebugAndroidTest checks as their features land. No app tests were run during this planning stage.
+- Run assembleDebug, unit tests, lintDebug, and targeted connectedDebugAndroidTest checks as their features land. See `build-step-1.md` and `build-step-2.md` for implementation evidence. Unit checks use `:app:testVerificationUnitTest`; device instrumentation uses `:app:connectedVerificationAndroidTest` against a separate `.verification` application ID, preserving the learner’s debug app data when the runner cleans up.
 
 ## What Was Simplified and Why
 
@@ -315,3 +315,8 @@ Exact scheduling improves timing precision; it is not an absolute delivery guara
 **Remaining build investigations:** exact compatible library/plugin pins and an empty build, configured AVD, physical-phone API/connection, and observed background delay/recovery. These have explicit first-checkpoint checks; they do not conceal an unresolved stack choice. If a phone is below the approved minimum, agree on an alternative before installing. Version-resolution changes that preserve the agreed stack are routine; product changes require learner agreement.
 
 The expanded POC contains several screens, durable photos, and real background behavior. The original 2–4-hour target is not a tested delivery estimate; build in verified steps and preserve all approved features unless the learner agrees to a cut. The learner approved this technical plan after review, including the supplied 12-role palette and the Java-target maintenance clarification. Technical planning is complete; 5-build is the next stage.
+
+
+## Revisions
+
+- 2026-10-11 learner feedback: first-entry next date is optional; saving without one shows the no-reminders message and creates no plan. Add a next date later from detail. Date editing moves into slice 2, replacing old reminders while preserving administered history.

@@ -1,11 +1,17 @@
 package com.example.petcare.ui
 
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.ComponentName
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -15,6 +21,14 @@ import com.example.petcare.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(model: PetCareViewModel) {
+    val context = LocalContext.current
+    val hasDiagnostic = remember(context) {
+        try {
+            context.packageManager.getReceiverInfo(ComponentName(context.packageName,
+                "com.example.petcare.reminders.DiagnosticReceiver"), 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) { false }
+    }
     ModalBottomSheet(onDismissRequest = model::dismissSettings,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface) {
@@ -46,6 +60,20 @@ fun SettingsSheet(model: PetCareViewModel) {
                     modifier = Modifier.weight(1f).testTag("save_settings"), shape = RoundedCornerShape(14.dp)) {
                     Text(stringResource(if (model.saving) R.string.saving else R.string.save_changes))
                 }
+            }
+            TextButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+            }) { Text("Phone notification settings") }
+            if (hasDiagnostic) {
+                Text("Development check", style = MaterialTheme.typography.titleSmall)
+                Text("This schedules a short background alarm without changing any treatment dates. Enable notifications first, then leave the app open in the background. Inexact delivery may take longer than 20 seconds.",
+                    style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = {
+                    context.sendBroadcast(Intent("com.example.petcare.DEBUG_SCHEDULE").setComponent(
+                        ComponentName(context.packageName, "com.example.petcare.reminders.DiagnosticReceiver")))
+                    model.dismissSettings()
+                    model.notice = "Diagnostic requested. Press Home and watch for a phone notification."
+                }) { Text("Test background reminder (20 seconds)") }
             }
             Text(stringResource(R.string.coming_settings), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -1,0 +1,274 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "db3cba704fba3950bca06803ea87e104",
+    "entities": [
+      {
+        "tableName": "pets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `birthDate` TEXT, `owner` TEXT, `breed` TEXT, `photoPath` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "birthDate",
+            "columnName": "birthDate",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "owner",
+            "columnName": "owner",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "breed",
+            "columnName": "breed",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoPath",
+            "columnName": "photoPath",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "administrations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `petId` TEXT NOT NULL, `actualDate` TEXT NOT NULL, `medicationName` TEXT NOT NULL, `doseText` TEXT NOT NULL, `purchaseSource` TEXT, `photoPath` TEXT, `recordedAt` INTEGER NOT NULL, `completedPlanId` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`petId`) REFERENCES `pets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`completedPlanId`) REFERENCES `treatment_plans`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "petId",
+            "columnName": "petId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualDate",
+            "columnName": "actualDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medicationName",
+            "columnName": "medicationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "doseText",
+            "columnName": "doseText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseSource",
+            "columnName": "purchaseSource",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoPath",
+            "columnName": "photoPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recordedAt",
+            "columnName": "recordedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedPlanId",
+            "columnName": "completedPlanId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_administrations_petId",
+            "unique": false,
+            "columnNames": [
+              "petId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_administrations_petId` ON `${TABLE_NAME}` (`petId`)"
+          },
+          {
+            "name": "index_administrations_completedPlanId",
+            "unique": true,
+            "columnNames": [
+              "completedPlanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_administrations_completedPlanId` ON `${TABLE_NAME}` (`completedPlanId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "pets",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "petId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "treatment_plans",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "completedPlanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "treatment_plans",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `petId` TEXT NOT NULL, `sourceAdministrationId` TEXT NOT NULL, `dueDate` TEXT NOT NULL, `status` TEXT NOT NULL, `revision` INTEGER NOT NULL, `postponedOnce` INTEGER NOT NULL, `handledBits` INTEGER NOT NULL, `needsReconciliation` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`petId`) REFERENCES `pets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`sourceAdministrationId`) REFERENCES `administrations`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "petId",
+            "columnName": "petId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceAdministrationId",
+            "columnName": "sourceAdministrationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dueDate",
+            "columnName": "dueDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "postponedOnce",
+            "columnName": "postponedOnce",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "handledBits",
+            "columnName": "handledBits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "needsReconciliation",
+            "columnName": "needsReconciliation",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_treatment_plans_petId",
+            "unique": false,
+            "columnNames": [
+              "petId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_treatment_plans_petId` ON `${TABLE_NAME}` (`petId`)"
+          },
+          {
+            "name": "index_treatment_plans_sourceAdministrationId",
+            "unique": false,
+            "columnNames": [
+              "sourceAdministrationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_treatment_plans_sourceAdministrationId` ON `${TABLE_NAME}` (`sourceAdministrationId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "pets",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "petId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "administrations",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sourceAdministrationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'db3cba704fba3950bca06803ea87e104')"
+    ]
+  }
+}

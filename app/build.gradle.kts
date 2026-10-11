@@ -1,4 +1,6 @@
 plugins {
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
 }
@@ -18,9 +20,22 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true }
+    // Instrumentation uses a separate app sandbox, preserving the learner's debug records.
+    buildTypes {
+        create("verification") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".verification"
+            matchingFallbacks += listOf("debug")
+        }
+    }
+    testBuildType = "verification"
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+room { schemaDirectory("$projectDir/schemas") }
 dependencies {
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -5,9 +5,11 @@ Kotlin and Jetpack Compose, with an earthy sand, brown, and green palette.
 
 ## Current build
 
-Step 1 implements the welcome screen, editable persistent welcome title, settings,
-and home/drawer navigation. Medication opens an empty state; pet records and
-notifications belong to later steps and are not implemented yet.
+Steps 1–2 implement the welcome screen, persistent custom title, pet creation,
+and the first flea-treatment record with an optional manually chosen next date, which can be added or edited later. Home cards
+and full details survive reopening. Phone reminders use Android's inexact alarms.
+Confirmation, postponement, photos, and accelerated demo mode belong
+to later build steps.
 
 ## Open and run
 
@@ -22,9 +24,13 @@ For terminal builds, set `JAVA_HOME` to your Android Studio `jbr` directory and
 `local.properties` file. Then run:
 
 ```sh
-./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
-./gradlew :app:connectedDebugAndroidTest
+./gradlew :app:assembleDebug :app:testVerificationUnitTest :app:lintDebug
+./gradlew :app:connectedVerificationAndroidTest
 ```
+
+Keep Android Studio's build variant on **debug** for your normal app. Automated
+tests target a separate **verification** variant/application ID, so test-install
+cleanup cannot erase your debug app records. These tests do not open the app UI.
 
 The first build needs network access for pinned dependencies. The Gradle wrapper
 verifies the distribution checksum. JVM bytecode targets Java 17; the build runs
@@ -38,12 +44,44 @@ Home; its menu opens a left drawer. Medication is an empty state; other sections
 are labeled Later. The launcher label remains Pet Care. Your title is stored only
 on this device; uninstalling or clearing app data removes it.
 
+## Try step 2
+
+Enter, add a pet, and accept the invitation to record its first treatment. Medication
+and dose are required; source is optional. Choose the actual date given (today or
+earlier). The next date is optional; if supplied, it must be strictly after the actual date. Saving without one shows “No next treatment selected; no reminders scheduled.” Use Schedule next treatment or Edit next date in detail to add/change a date later. No interval or dose is
+calculated. Tap a home card to see the full prior record.
+
+The welcome screen and treatment form warn when notifications are disabled. Saving
+still works. Enable reminders through the contextual prompt or system notification
+settings. Reminder requests use local device time: purchase at noon four days
+before, treatment at 8 AM, and one overdue reminder at noon the next day. Elapsed
+request times are skipped; Android may delay delivery. Confirmation/postponement
+arrive in step 3. Notification taps currently open the corresponding pet's detail.
+
+Debug builds offer **Settings → Development check → Test background reminder
+(20 seconds)**. Enable notifications, tap it, and press the phone's Home button.
+Watch for **Diagnostic — background reminder**. This uses the same real alarm API
+but does not change treatment dates or create treatment records. It is a development
+test, separate from the accelerated sample mode planned for step 5. Inexact delivery
+may take longer than 20 seconds. The diagnostic receiver is absent from release builds.
+
+Force-stop, power-off and clearing storage prevent normal delivery. Opening again
+reconciles saved plans; boot, clock/time-zone changes and app updates also trigger
+recovery. Disabling notifications does not replay missed alerts later. Alarm
+scheduling failure keeps the saved record and offers a retry.
+
 ## Project guide
 
 - `app/src/main/java/com/example/petcare/MainActivity.kt`: Android entry point.
 - `ui/AppShell.kt`: Compose navigation and shared screen frame.
 - `ui/PetCareViewModel.kt`: UI state and save coordination.
 - `data/SettingsStore.kt`: DataStore title persistence.
+- `data/PetCareDatabase.kt`: Room entities and queries; exported schema in `app/schemas`.
+- `data/TreatmentRepository.kt`: validated, atomic record saves and next-date creation/editing.
+- `reminders/ReminderRules.kt`: local dates, due-time rules, and late-delivery eligibility.
+- `reminders/AlarmScheduler.kt`: real inexact alarms and idempotent reconciliation.
+- `reminders/ReminderReceiver.kt`: checked background delivery.
+- `ui/TreatmentScreens.kt`: actual-date/next-date pickers and treatment details.
 - `ui/theme/Theme.kt`: approved colors.
 - `devpost/`: approved scope, PRD, technical spec, and build checklist.
 

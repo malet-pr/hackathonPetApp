@@ -14,9 +14,10 @@ import androidx.compose.ui.unit.dp
 import com.example.petcare.R
 
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier, onEnter: () -> Unit) {
+fun WelcomeScreen(modifier: Modifier = Modifier, notificationNotice: @Composable () -> Unit = {}, onEnter: () -> Unit) {
     Column(modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
+        notificationNotice()
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Image(painterResource(R.drawable.welcome_dog), stringResource(R.string.welcome_art),
                 Modifier.fillMaxWidth().widthIn(max = 420.dp).aspectRatio(0.9f))

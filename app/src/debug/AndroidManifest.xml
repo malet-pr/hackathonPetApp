@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Diagnostic only: absent from release builds; does not create or alter treatment records. -->
+        <receiver android:name=".reminders.DiagnosticReceiver" android:exported="true" />
+    </application>
+</manifest>

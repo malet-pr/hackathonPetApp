@@ -11,15 +11,6 @@
     <string name="appointments">Appointments</string>
     <string name="providers">Providers</string>
     <string name="later">Later</string>
-    <string name="home_heading">A little care, every day.</string>
-    <string name="home_subtitle">Keep the important dates close.</string>
-    <string name="no_reminders_title">A fresh start</string>
-    <string name="no_reminders_body">Your pets and their upcoming treatments will appear here.</string>
-    <string name="view_medication">View medication</string>
-    <string name="pets_heading">Your companions</string>
-    <string name="pets_empty_title">No pets yet</string>
-    <string name="pets_empty_body">Pet profiles and treatment records are coming in the next build step.</string>
-    <string name="next_step">Next build step</string>
     <string name="settings_title">Make it yours</string>
     <string name="settings_caption">Give your pet care space a name.</string>
     <string name="welcome_title_label">Welcome title</string>

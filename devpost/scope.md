@@ -19,7 +19,7 @@ Initially, the learner caring for their two dogs. They currently put a flea-trea
 
 Choose a dog, record the treatment date, dose, specific medication, and where it was obtained, and enter the next due date. Return to check the record, receive phone reminders to buy and administer the next treatment, and confirm when it has been given. Confirmation asks for the actual administration date, with a date picker defaulting to today and allowing an earlier date. Record administration on the selected date rather than automatically using the confirmation date or scheduled due date, and cancel any pending overdue reminders. An unconfirmed treatment gets an overdue reminder.
 
-First entry includes a next due date. Confirming the pending treatment creates a new administration record with the medication actually given, which may differ from the previous product; prior records remain unchanged. Medication details start blank, with an explicit optional copy action. After confirmation, offer to schedule another treatment or choose "Not now" with no next treatment scheduled.
+First entry may include an optional next due date. Saving without one shows “No next treatment selected; no reminders scheduled.” The owner can schedule a next treatment later and edit its chosen date. Confirming the pending treatment creates a new administration record with the medication actually given, which may differ from the previous product; prior records remain unchanged. Medication details start blank, with an explicit optional copy action. After confirmation, offer to schedule another treatment or choose "Not now" with no next treatment scheduled.
 
 ## Inspiration & Identity
 
@@ -40,7 +40,7 @@ The final walkthrough should fit a short demo video; a public GitHub repository 
 - Support multiple pets with a required name and optional birth date, owner, breed, and photo; the demo may use one pet.
 - Save and view flea-treatment details: date, dose, medication, where it was obtained, and one optional photo selected from existing phone images.
 - Include a customizable welcome title/image, settings accessible everywhere, drawer navigation, and reminder cards. Deferred feature entries are visibly disabled.
-- Let the owner enter the next due date manually.
+- Let the owner enter an optional next due date manually, add it later, and edit a scheduled date.
 - Provide a purchase reminder at noon four days ahead, a treatment reminder at 8 AM on the due date with one postponement to 4 PM that day, and one overdue reminder at noon the next day if unconfirmed.
 - Let the owner confirm a treatment was given by selecting its actual administration date; default the date picker to today and allow earlier dates. Save the selected administration date and cancel any pending overdue reminders on confirmation. Provide an overdue reminder if the treatment remains unconfirmed.
 - Provide a clearly labeled demo mode with sample treatment data, where one day becomes one minute, for learning, demonstration, and testing.
@@ -65,3 +65,8 @@ These remain part of the larger idea but are deferred to keep the first proof of
 ## Explicitly Cut
 
 Automatic calculation of the next treatment date from a product or repeat interval: the learner explicitly prefers entering the date themselves because schedules may vary. The app records the owner's chosen date.
+
+
+## Revisions
+
+- 2026-10-11 learner feedback: first-entry next date is optional; saving without one shows the no-reminders message and creates no plan. Add a next date later from detail. Date editing moves into slice 2, replacing old reminders while preserving administered history.

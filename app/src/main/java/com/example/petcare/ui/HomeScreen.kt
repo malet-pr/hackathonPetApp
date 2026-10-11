@@ -6,64 +6,54 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.petcare.R
+import com.example.petcare.data.PetSummary
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+fun displayDate(iso: String): String = LocalDate.parse(iso).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, onMedication: () -> Unit) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
-        Spacer(Modifier.height(20.dp))
-        Text(stringResource(R.string.home_heading), style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(12.dp))
-        Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(36.dp))
-        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.fillMaxWidth().padding(28.dp)) {
-                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Icon(painterResource(R.drawable.ic_paw), null, Modifier.padding(16.dp).size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-                Spacer(Modifier.height(24.dp))
-                Text(stringResource(R.string.no_reminders_title), style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(10.dp))
-                Text(stringResource(R.string.no_reminders_body), style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(24.dp))
-                FilledTonalButton(onClick = onMedication, shape = RoundedCornerShape(14.dp)) {
-                    Text(stringResource(R.string.view_medication))
+fun HomeScreen(modifier: Modifier = Modifier, pets: List<PetSummary>?, error: String?,
+    onAdd: () -> Unit, onPet: (String) -> Unit, medicationArea: Boolean = false) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(if (medicationArea) "Your companions" else "A little care, every day.",
+            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+        Text(if (medicationArea) "Flea treatment records for each pet." else "Keep the important dates close.",
+            style = MaterialTheme.typography.bodyLarge)
+        if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+        else if (pets == null) CircularProgressIndicator()
+        else if (pets.isEmpty()) CareCard {
+            Text("A fresh start", style = MaterialTheme.typography.titleLarge)
+            Text("Add your first pet to start keeping treatment records.")
+        }
+        pets?.forEach { summary ->
+            Card(onClick = { onPet(summary.pet.id) }, shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("${summary.pet.name} — Flea treatment", style = MaterialTheme.typography.titleLarge)
+                    Text(summary.last?.let { "Last given: ${displayDate(it.actualDate)}" } ?: "No treatment recorded")
+                    Text(summary.pending?.let { "Next chosen date: ${displayDate(it.dueDate)}" } ?: "No treatment scheduled")
+                    if (summary.pending?.dueDate?.let { LocalDate.parse(it) < LocalDate.now() } == true) {
+                        Text("Overdue — not recorded as given", color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold)
+                    }
+                    Text("View full record", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+        if (error == null) Button(onClick = onAdd, enabled = pets != null) { Text("Add pet") }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun PetsScreen(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
-        Spacer(Modifier.height(20.dp))
-        Text(stringResource(R.string.pets_heading), style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(36.dp))
-        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.fillMaxWidth().padding(28.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Icon(painterResource(R.drawable.ic_paw), null, Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.primary)
-                Text(stringResource(R.string.pets_empty_title), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(R.string.pets_empty_body), style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                SuggestionChip(onClick = {}, enabled = false,
-                    label = { Text(stringResource(R.string.next_step)) })
-            }
-        }
+fun CareCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
     }
 }
