@@ -1,0 +1,17 @@
+/devpost/learner-profile.md
+.env
+.env.*
+!.env.example
+
+# Android and local development
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+captures/
+*.jks
+*.keystore
+*.hprof
+.DS_Store

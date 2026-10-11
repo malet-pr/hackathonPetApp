@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">Pet Care</string>
+    <string name="settings">Settings</string>
+    <string name="open_menu">Open navigation menu</string>
+    <string name="enter_app">Enter</string>
+    <string name="welcome_caption">Your pet’s care, in one place.</string>
+    <string name="welcome_art">Illustration of a brown dog sitting beside green leaves</string>
+    <string name="home">Home</string>
+    <string name="medication">Medication</string>
+    <string name="vaccinations">Vaccinations</string>
+    <string name="appointments">Appointments</string>
+    <string name="providers">Providers</string>
+    <string name="later">Later</string>
+    <string name="home_heading">A little care, every day.</string>
+    <string name="home_subtitle">Keep the important dates close.</string>
+    <string name="no_reminders_title">A fresh start</string>
+    <string name="no_reminders_body">Your pets and their upcoming treatments will appear here.</string>
+    <string name="view_medication">View medication</string>
+    <string name="pets_heading">Your companions</string>
+    <string name="pets_empty_title">No pets yet</string>
+    <string name="pets_empty_body">Pet profiles and treatment records are coming in the next build step.</string>
+    <string name="next_step">Next build step</string>
+    <string name="settings_title">Make it yours</string>
+    <string name="settings_caption">Give your pet care space a name.</string>
+    <string name="welcome_title_label">Welcome title</string>
+    <string name="title_hint">Shown inside the app. The launcher name stays Pet Care.</string>
+    <string name="save_changes">Save changes</string>
+    <string name="saving">Saving…</string>
+    <string name="cancel">Cancel</string>
+    <string name="title_empty">Enter a title.</string>
+    <string name="title_long">Use 60 characters or fewer.</string>
+    <string name="save_failed">Could not save. Your text is still here; please try again.</string>
+    <string name="coming_settings">Picture customization and demo mode will be added in later build steps.</string>
+</resources>
