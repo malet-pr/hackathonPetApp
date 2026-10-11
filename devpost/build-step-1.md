@@ -1,7 +1,7 @@
 # Build step 1 verification
 
-Date: 2026-10-11. Status: mechanical verification and learner check passed; learner-owned commit pending.
-The slice remains unchecked until its Git checkpoint is verified.
+Date: 2026-10-11. Status: mechanical verification and learner check passed; committed as `c401f99`.
+Git checkpoint verified after the learner committed it.
 
 ## Delivered
 
@@ -57,5 +57,5 @@ in the final direct UI check. No background reminders are implemented or verifie
 
 Completed on 2026-10-11: the learner confirmed title persistence, approved the colors,
 and reported that behavior matches the specification. No changes requested.
-The learner chose to make the Git commit personally. Verify the checkpoint before
-marking slice 1 complete.
+The learner committed the checkpoint as `c401f99`; verified the commit and marked
+slice 1 complete.

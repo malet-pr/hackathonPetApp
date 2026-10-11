@@ -15,7 +15,7 @@ We build small working slices, each adding behavior that can be tried immediatel
 
 ## Slices
 
-- [ ] **1. Launch the themed app and save a custom welcome title**
+- [x] **1. Launch the themed app and save a custom welcome title**
   Becomes usable: A runnable native Android app with the approved earthy palette, default centered pet illustration, welcome title, enter button, and settings gear. Change the title, close/reopen the app, and see it retained. Enter opens the home empty state and left drawer; deferred features are visibly unavailable. No treatment functions are represented as complete yet.
   Why now: Delivers a real welcome/settings interaction while proving the Kotlin/Compose/JDK/SDK/Gradle baseline and a working device. It includes project setup rather than leaving a standalone plumbing step. This is the stopping boundary requested for the current session.
   PRD ref: `prd.md > The Core Journey`, `prd.md > Welcome and Settings`, `prd.md > Home and Navigation Drawer`, `prd.md > Look and Feel`, `prd.md > States and Boundaries`
@@ -97,4 +97,4 @@ Activity mode: Planned live app/editor guided route; record the actual activity 
 - Initial lint analysis crashed inside IntelliJ PSI while a source import cleanup overlapped analysis (cause not confirmed). A subsequent analysis completed; no lint rules were disabled.
 
 
-Slice 1 mechanical verification and learner check passed on 2026-10-11; see `build-step-1.md`. The learner confirmed the colors and specified behavior and chose to make the commit personally. Commit remains pending; tick slice 1 after verifying it exists.
+Slice 1 mechanical verification and learner check passed on 2026-10-11; see `build-step-1.md`. The learner confirmed the colors and specified behavior and chose to make the commit personally. Verified checkpoint: `c401f99` (`Add runnable Compose app with persistent welcome title`). Slice 1 complete; session stops here.
