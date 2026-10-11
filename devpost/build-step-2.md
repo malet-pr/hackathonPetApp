@@ -1,6 +1,6 @@
 # Build step 2 verification
 
-Date: 2026-10-11. Status: mechanical checks passed; learner check and commit pending.
+Date: 2026-10-11. Status: mechanical checks and learner review passed; learner committed/pushed `388f4e3`.
 
 ## Delivered
 
@@ -122,4 +122,4 @@ ones exist, and the other pet's requests remain intact. Existing rule tests reje
 stale-revision delivery. Normal debug app records/settings were preserved.
 
 Direct UI walkthrough passed in the separate verification APK: save Verification Pup’s administration without a next date; see No treatment scheduled and Schedule next treatment; choose October 22; edit to October 24; cold-restart and verify October 24 plus the unchanged October 11 medication/dose. See updated screenshot. Normal debug is installed for the learner's retry.
-Learner feedback on these changes and the slice commit remain pending.
+Learner reviewed and approved these changes, then committed/pushed `388f4e3`.

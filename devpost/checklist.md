@@ -5,9 +5,9 @@ status: approved
 
 # Build Checklist
 
-Build mode: learn. Slice 1 is complete. The learner authorized slice 2 on 2026-10-11; pause for its hands-on check before committing.
+Build mode: learn. Slices 1–3 are implemented, mechanically verified and approved. Learner paused on 2026-10-11; one additional manual check is pending tomorrow morning.
 
-Session boundary: complete slice 2 and its hands-on check/checkpoint. Later slices retain the approved full scope; await learner direction before starting slice 3.
+Session boundary: STOP for today at the learner’s request. On resume Monday morning, 2026-10-12 (Buenos Aires), first run the pending manual postponement/alarm-clearing check below. Do not start slice 4 before that check and learner direction.
 
 Git prerequisite: Git was initialized with learner approval. Keep /devpost/learner-profile.md and credential files ignored; inspect intended staged changes before each commit. Checklist and learn mode were approved before implementation.
 
@@ -25,7 +25,7 @@ We build small working slices, each adding behavior that can be tried immediatel
   Learner check: Open the project root in Android Studio, run the app on the selected emulator, enter the home screen, open/close the drawer, change the welcome title through the gear, and close/reopen the app. Report whether the title persists and the layout/colors match your intention. Briefly show MainActivity, AppShell, and SettingsStore as the relevant route.
   Commit: `Add runnable Compose app with persistent welcome title`
 
-- [ ] **2. Save a pet and first flea treatment, with a real next-dose reminder**
+- [x] **2. Save a pet and first flea treatment, with a real next-dose reminder**
   Becomes usable: Create pets, record the medication actually given and its date, optionally choose a next date, add/edit it later, and see persisted home cards and treatment detail. A next plan schedules real phone reminders; notifications-disabled warnings do not block saving.
   Why now: Exercises the distinctive care-record-to-reminder loop early, before adding optional photo/customization work. Proves real persistence and the unfamiliar background notification behavior together.
   PRD ref: `prd.md > Pet Record`, `prd.md > Treatment Detail and Entry`, `prd.md > Reminder Schedule and Due-Date Changes`, `prd.md > Notifications Disabled`, `prd.md > Acceptance Criteria`
@@ -35,14 +35,14 @@ We build small working slices, each adding behavior that can be tried immediatel
   Learner check: Add a pet and treatment, inspect its next-date card/full detail, restart the app, and check the record persists. Save once without a next date and observe the no-reminders message; add one later, edit it, and restart to check persistence. Try invalid input and notification denial. Observe the background diagnostic notification and describe anything confusing about the record-to-reminder flow.
   Commit: `Add persisted flea treatment records and background reminders`
 
-- [ ] **3. Confirm the actual dose, change plans, and postpone once**
+- [x] **3. Confirm the actual dose, change plans, and postpone once**
   Becomes usable: Complete a pending treatment with its actual medication/date, preserving prior history; optionally schedule another. Copy prior details deliberately, postpone once to 4 PM, and cancel obsolete/overdue alerts correctly.
   Why now: Closes the core loop and proves the learner's A/B medication example before adding convenience features. Cancellation, stale alarms, and duplicate confirmation are tested while the system is still small.
   PRD ref: `prd.md > Administration Confirmation`, `prd.md > Treatment Detail and Entry`, `prd.md > Reminder Schedule and Due-Date Changes`, `prd.md > Approved Review Defaults`, `prd.md > Acceptance Criteria`
   Spec ref: `spec.md > Local Database and Treatment Repository`, `spec.md > Reminder Rules`, `spec.md > Real Alarm Scheduler and Recovery`, `spec.md > Notification Delivery and Permission UI`, `spec.md > Data Model`, `spec.md > Verification Plan`
   Build: Add Record treatment with blank actual medication/dose/source fields and optional Copy from last treatment. Default actual date to today while allowing valid earlier dates. Atomically create the new administration and complete its plan; cancel pending/displayed reminders. Offer optional successor scheduling only after confirmation. Reuse slice 2 due-date editing and add a once-only postpone action, stale revision suppression, retained history in detail, and reconciliation of interrupted alarm changes.
   Verify (mechanical): Run the required build/lint/unit checks and targeted Room/alarm instrumentation. Persist October A, confirm November using B and an explicitly selected actual date, close/reopen and assert A unchanged, B correct, plan complete and duplicate confirmation rejected. Verify No next schedule leaves none, due edits replace old identities, stale queued alarms cannot post, and postpone is unavailable after use or 4 PM. Verify cancellation and recovery on the selected device.
-  Learner check: Reproduce the A/B scenario, backdate an administration, inspect both records, decline then create a next schedule, edit its date and try the diagnostic postponement/cancellation path. Explain any difference from the intended confirmation flow.
+  Learner check: Reproduce the A/B scenario, backdate an administration, inspect both records, decline then create a next schedule, edit its date and check postponement availability against the phone’s local time (before 4 PM on the due day, once only). Observe the background diagnostic and review the automated cancellation evidence. Explain any difference from the intended confirmation flow.
   Commit: `Add actual-dose confirmation and reminder lifecycle controls`
 
 - [ ] **4. Keep optional pet details and photos with the records**
@@ -71,7 +71,7 @@ We build small working slices, each adding behavior that can be tried immediatel
 - [ ] Core treatment/reminder loop explored — after slice 3, learner checks the changed-medication history and alert cancellation before image/demo work. This is distinct from the early shell check.
 - [ ] Final kick-the-tires exploration and feedback completed — after slice 5, learner explores the complete app and real/demo separation.
 
-In learn mode, each slice additionally waits for its Learner check before its commit. Fast mode retains these planned hands-on checkpoints. The learner extended this session to slice 2 on 2026-10-11.
+In learn mode, each slice additionally waits for its Learner check before its commit. Fast mode retains these planned hands-on checkpoints. The learner extended this session through slice 3 on 2026-10-11.
 
 ## Final Review
 
@@ -93,6 +93,12 @@ Activity mode: Planned live app/editor guided route; record the actual activity 
 
 ## Revisions
 
+- Slice 3 verification: the emulator was already after 4 PM, so postpone eligibility/recovery/cancellation use injected morning clocks in Android tests without changing the device clock or real treatment dates. The learner can check the hidden after-cutoff action now; the accelerated demo later supplies an interactive postponement path.
+
+- A computer crash interrupted slice 3 verification. Implementation and screenshot survived; resumed from saved files and isolated sample database rather than recreating or clearing normal records.
+
+- Slice 3 authorized after learner approval and commit of slice 2 on 2026-10-11. Continue in learn mode.
+
 - 2026-10-11 learner feedback: first-entry next date is optional; saving without one shows the no-reminders message and creates no plan. Add a next date later from detail. Date editing moves into slice 2, replacing old reminders while preserving administered history.
 
 - Slice 2 authorization: learner requested starting step 2 on 2026-10-11; retain learn mode and pause for its check.
@@ -105,4 +111,16 @@ Activity mode: Planned live app/editor guided route; record the actual activity 
 
 Slice 1 mechanical verification and learner check passed on 2026-10-11; see `build-step-1.md`. The learner confirmed the colors and specified behavior and chose to make the commit personally. Verified checkpoint: `c401f99` (`Add runnable Compose app with persistent welcome title`). Slice 1 complete; session stops here.
 
-Slice 2 mechanical verification, including the optional-date/date-edit revision, passed on 2026-10-11; see `build-step-2.md`. Learner check and commit pending; slice 2 remains unchecked.
+Slice 2 mechanical verification, including the optional-date/date-edit revision, passed on 2026-10-11; see `build-step-2.md`. Learner approved the changes and personally committed/pushed checkpoint `388f4e3`; slice 2 is complete.
+
+Slice 3 mechanical verification passed after crash recovery on 2026-10-11; see `build-step-3.md`. Learner reported all requested checks worked as expected and explicitly approved the stage. Approved implementation is checkpointed; the extra manual postponement/alarm-clearing check and core-loop checkpoint remain pending for 2026-10-12 morning.
+
+## Next Session — Manual Reminder Check First
+
+Learner ended the session and approved step 3 on 2026-10-11, requesting this last check tomorrow morning. No scheduled automation/reminder was requested.
+
+1. Read emulator time/zone; use its local morning before 4 PM. Buenos Aires zone is appropriate; do not silently change clock/date or saved treatment dates.
+2. Use a test pet with prior administration yesterday and next date today. Inspect that plan’s Android alarm requests before changing it.
+3. Learner postpones once to 4 PM; inspect that old morning identities are removed and the postponed/overdue requests remain. Reopen: the one-use flag remains consumed.
+4. Learner confirms actual administration and declines a next schedule; inspect that pending alarms and displayed notifications for that completed plan are removed. Saved history remains.
+5. Record outcomes, resolve any issue, then finish the core-loop checkpoint. Await learner direction before slice 4 (optional pet details/photos).

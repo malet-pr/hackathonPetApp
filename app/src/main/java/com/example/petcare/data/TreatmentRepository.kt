@@ -3,6 +3,8 @@ package com.example.petcare.data
 import androidx.room.withTransaction
 import java.time.Clock
 import java.time.LocalDate
+import com.example.petcare.reminders.ReminderRules
+import com.example.petcare.reminders.ReminderKind
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -66,4 +68,42 @@ class TreatmentRepository(val database: PetCareDatabase, private val clock: Cloc
                 handledBits = 0, needsReconciliation = true).also { dao.updatePlan(it) }
         }
     }
+
+    suspend fun confirmTreatment(petId: String, planId: String, revision: Int, actual: LocalDate,
+        medication: String, dose: String, source: String): Administration = reminderLock.withLock {
+        require(medication.trim().isNotEmpty()) { "Enter the medication name." }
+        require(dose.trim().isNotEmpty()) { "Enter the dose as given." }
+        require(actual <= LocalDate.now(clock ?: Clock.systemDefaultZone())) { "Administration date cannot be in the future." }
+        database.withTransaction {
+            val plan = requireNotNull(dao.plan(planId)) { "This schedule could not be found." }
+            require(plan.petId == petId && plan.status == "PENDING" && plan.revision == revision) {
+                "This schedule changed or was already completed. Reopen the record."
+            }
+            val previous = requireNotNull(dao.history(petId).firstOrNull { it.id == plan.sourceAdministrationId })
+            require(actual >= LocalDate.parse(previous.actualDate)) {
+                "Administration date cannot be before the previous treatment."
+            }
+            val administration = Administration(petId = petId, actualDate = actual.toString(),
+                medicationName = medication.trim(), doseText = dose.trim(),
+                purchaseSource = source.trim().ifEmpty { null }, recordedAt = clock?.millis() ?: System.currentTimeMillis(),
+                completedPlanId = plan.id)
+            dao.insertAdministration(administration)
+            dao.updatePlan(plan.copy(status = "COMPLETED", needsReconciliation = true))
+            administration
+        }
+    }
+
+    suspend fun postpone(planId: String, revision: Int): TreatmentPlan = reminderLock.withLock {
+        database.withTransaction {
+            val plan = requireNotNull(dao.plan(planId)) { "This schedule could not be found." }
+            val time = clock ?: Clock.systemDefaultZone()
+            require(plan.revision == revision && ReminderRules.canPostpone(plan, time.instant(), time.zone)) {
+                "Postponement is available once, before 4 PM on the due day. Reopen the record."
+            }
+            plan.copy(revision = plan.revision + 1, postponedOnce = true,
+                handledBits = plan.handledBits or ReminderKind.Treatment.bit,
+                needsReconciliation = true).also { dao.updatePlan(it) }
+        }
+    }
+
 }

@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        routeNotification(intent)
+        if (savedInstanceState == null) routeNotification(intent)
         setContent { PetCareTheme { AppShell() } }
     }
     override fun onNewIntent(intent: Intent) {
@@ -24,6 +24,9 @@ class MainActivity : ComponentActivity() {
     }
     private fun routeNotification(intent: Intent) {
         if (intent.data?.scheme != "petcare" || intent.data?.authority != "detail") return
-        intent.getStringExtra("pet_id")?.let { ViewModelProvider(this)[PetCareViewModel::class.java].openPet(it) }
+        val petId = intent.getStringExtra("pet_id") ?: return
+        val planId = intent.data?.pathSegments?.singleOrNull() ?: return
+        ViewModelProvider(this)[PetCareViewModel::class.java].openNotification(petId, planId,
+            if (intent.hasExtra("revision")) intent.getIntExtra("revision", -1) else null, intent.action)
     }
 }

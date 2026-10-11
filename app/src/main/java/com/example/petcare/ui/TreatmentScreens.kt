@@ -11,6 +11,10 @@ import com.example.petcare.data.Administration
 import com.example.petcare.data.PetSummary
 import com.example.petcare.reminders.CalendarDates
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+import kotlinx.coroutines.delay
+import com.example.petcare.reminders.ReminderRules
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,9 +38,14 @@ fun CalendarButton(label: String, date: LocalDate?, enabled: Boolean, onDate: (L
 fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier, notice: @Composable () -> Unit) {
     Column(modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("First flea treatment", style = MaterialTheme.typography.headlineMedium)
+        val confirming = model.screen == Screen.ConfirmTreatment
+        Text(if (confirming) "Record treatment" else "First flea treatment", style = MaterialTheme.typography.headlineMedium)
         Text(pet?.pet?.name ?: "Loading pet…", style = MaterialTheme.typography.titleLarge)
-        Text("Record what was actually given. Choose a next date only if another treatment is planned.")
+        Text(if (confirming) "Record the medication actually given. Previous treatment records will stay unchanged."
+            else "Record what was actually given. Choose a next date only if another treatment is planned.")
+        if (confirming) OutlinedButton(onClick = model::copyLastTreatment, enabled = !model.careSaving && pet?.last != null) {
+            Text("Copy from last treatment")
+        }
         notice()
         CalendarButton("Actual administration", model.actualDate, !model.careSaving) { model.actualDate = it }
         OutlinedTextField(model.medication, { model.medication = it }, label = { Text("Medication name") },
@@ -45,6 +54,7 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
             enabled = !model.careSaving, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(model.source, { model.source = it }, label = { Text("Where obtained (optional)") },
             enabled = !model.careSaving, singleLine = true, modifier = Modifier.fillMaxWidth())
+        if (!confirming) {
         CalendarButton("Next chosen treatment (optional)", model.nextDate, !model.careSaving) { model.nextDate = it }
         if (model.nextDate != null) TextButton(onClick = { model.nextDate = null }, enabled = !model.careSaving) {
             Text("Clear next date")
@@ -52,8 +62,9 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
         if (model.nextDate == null) Text("No next treatment selected; no reminders will be scheduled.")
         Text("Reminders: buy 4 days before at noon; treatment at 8 AM; one overdue follow-up the next day at noon. Times may vary.",
             style = MaterialTheme.typography.bodySmall)
+        }
         model.formError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(onClick = model::saveFirstTreatment, enabled = !model.careSaving && pet != null,
+        Button(onClick = { if (confirming) model.saveConfirmation() else model.saveFirstTreatment() }, enabled = !model.careSaving && pet != null,
             modifier = Modifier.fillMaxWidth()) { Text(if (model.careSaving) "Saving…" else "Save treatment") }
         OutlinedButton(onClick = model::back, enabled = !model.careSaving) { Text("Cancel") }
     }
@@ -72,14 +83,21 @@ fun TreatmentDetail(model: PetCareViewModel, pet: PetSummary?, history: List<Adm
                 Text(pet.pending?.let { displayDate(it.dueDate) } ?: "No treatment scheduled")
                 if (pet.pending?.dueDate?.let { LocalDate.parse(it) < LocalDate.now() } == true)
                     Text("Overdue — not recorded as given", color = MaterialTheme.colorScheme.error)
-                if (pet.pending != null) Text("Recording the next dose arrives in build step 3.",
-                    style = MaterialTheme.typography.bodySmall)
+                pet.pending?.let { plan ->
+                    var now by remember(plan.id) { mutableStateOf(Instant.now()) }
+                    LaunchedEffect(plan.id) { while (true) { now = Instant.now(); delay(30_000) } }
+                    Button(onClick = { model.startConfirmation(plan) }, enabled = !model.careSaving) { Text("Record treatment") }
+                    if (ReminderRules.canPostpone(plan, now, ZoneId.systemDefault())) {
+                        OutlinedButton(onClick = { model.postpone(plan) }, enabled = !model.careSaving) { Text("Postpone until 4 PM") }
+                    }
+                    if (plan.postponedOnce) Text("Reminder postponed once until 4 PM on the chosen date.", style = MaterialTheme.typography.bodySmall)
+                }
             }
             if (history.isEmpty()) {
                 Text("No treatment recorded")
                 Button(onClick = model::startTreatment) { Text("Add first treatment") }
             }
-            if (history.isNotEmpty()) Button(onClick = model::startNextDate) {
+            if (history.isNotEmpty()) Button(onClick = model::startNextDate, enabled = !model.careSaving) {
                 Text(if (pet.pending == null) "Schedule next treatment" else "Edit next date")
             }
             history.forEachIndexed { index, record ->

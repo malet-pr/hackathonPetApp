@@ -127,13 +127,19 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
                 Screen.Home -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet)
                 Screen.Pets -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet, medicationArea = true)
                 Screen.AddPet -> PetForm(model, Modifier.padding(insets))
-                Screen.FirstTreatment -> TreatmentForm(model, selected, Modifier.padding(insets), notificationNotice)
+                Screen.FirstTreatment, Screen.ConfirmTreatment -> TreatmentForm(model, selected, Modifier.padding(insets), notificationNotice)
                 Screen.NextDate -> NextDateForm(model, selected, Modifier.padding(insets), notificationNotice)
                 Screen.Detail -> TreatmentDetail(model, selected, records.filter { it.petId == model.selectedPetId }, Modifier.padding(insets))
             }
         }
     }
     if (model.settingsOpen) SettingsSheet(model)
+    if (model.nextTreatmentPrompt && !model.schedulingFailed) AlertDialog(
+        onDismissRequest = { model.nextTreatmentPrompt = false },
+        title = { Text("Treatment recorded") },
+        text = { Text("Would you like to schedule another treatment?") },
+        confirmButton = { TextButton(onClick = model::scheduleAfterConfirmation) { Text("Yes") } },
+        dismissButton = { TextButton(onClick = { model.nextTreatmentPrompt = false }) { Text("Not now") } })
     if (model.newPetPrompt) AlertDialog(onDismissRequest = { model.newPetPrompt = false },
         title = { Text("Pet saved") },
         text = { Text("Would you like to add the first flea treatment now? Use the menu at the top left to return to Medication or Home anytime.") },

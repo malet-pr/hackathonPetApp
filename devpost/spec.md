@@ -168,7 +168,7 @@ Implements `prd.md > Notifications Disabled` and `Administration Confirmation`.
 
 Create distinct real and demo notification channels on API 26+, with stable real/demo tags. Request POST_NOTIFICATIONS on API 33+ through a contextual explanation and system prompt; denial keeps records usable. Check app and relevant channel availability when returning to the app and before showing save warnings. Settings offers a link to system notification settings.
 
-A notification opens its matching pet/plan detail. The Record treatment action opens the form rather than confirming immediately; notification dismissal never counts as administration. Offer Postpone only when the stored rules permit it; route the notification action through the same checked repository operation. Confirmation cancels all remaining plan alarms and its displayed notifications, including postponed ones. Keep actual medication fields blank unless the owner invokes Copy from last treatment.
+A notification opens its matching pet/plan detail. The Record treatment action opens the form rather than confirming immediately; notification dismissal never counts as administration. Offer Postpone only when the stored rules permit it; route the notification action through the same checked repository operation. Real notification actions open MainActivity with the pet/plan/revision and an explicit Record or Postpone action; the ViewModel reloads and checks the plan before opening the form or requesting postponement. Rotation must not replay the launch action. Confirmation cancels all remaining plan alarms and its displayed notifications, including postponed ones. Keep actual medication fields blank unless the owner invokes Copy from last treatment.
 
 ### Accelerated Demo Clock and Session
 
@@ -318,5 +318,7 @@ The expanded POC contains several screens, durable photos, and real background b
 
 
 ## Revisions
+
+- Slice 3 implementation: notification actions use explicit activity PendingIntents and the same checked repository operations as detail. Postponement increments the revision, retains handled flags, and marks the morning treatment handled; confirmation atomically inserts the actual administration and completes its plan. No schema or product-scope change.
 
 - 2026-10-11 learner feedback: first-entry next date is optional; saving without one shows the no-reminders message and creates no plan. Add a next date later from detail. Date editing moves into slice 2, replacing old reminders while preserving administered history.

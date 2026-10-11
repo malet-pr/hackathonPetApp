@@ -28,6 +28,19 @@ class ReminderRulesTest {
         assertTrue(ReminderRules.eligible(plan, 0, ReminderKind.Overdue, tomorrow.plusSeconds(7_200), zone))
         assertFalse(ReminderRules.eligible(plan.copy(handledBits = 4), 0, ReminderKind.Overdue, tomorrow.plusSeconds(7_200), zone))
     }
+    @Test fun postponementIsOnceBeforeFourAndReplacesTheMorningEvent() {
+        val morning = LocalDate.parse(plan.dueDate).atTime(9, 0).atZone(zone).toInstant()
+        assertTrue(ReminderRules.canPostpone(plan, morning, zone))
+        assertFalse(ReminderRules.canPostpone(plan, morning.plusSeconds(7 * 3600), zone))
+        assertFalse(ReminderRules.canPostpone(plan, morning.minusSeconds(86400), zone))
+        assertFalse(ReminderRules.canPostpone(plan.copy(status = "COMPLETED"), morning, zone))
+        val revised = plan.copy(postponedOnce = true, revision = 1, handledBits = ReminderKind.Treatment.bit)
+        assertFalse(ReminderRules.canPostpone(revised, morning, zone))
+        assertEquals(listOf(ReminderKind.Postponed, ReminderKind.Overdue),
+            ReminderRules.futureEvents(revised, morning, zone).map { it.kind })
+        assertEquals(16, ReminderRules.events(revised, zone)[1].at.atZone(zone).hour)
+        assertFalse(ReminderRules.eligible(revised, 0, ReminderKind.Treatment, morning, zone))
+    }
     @Test fun datePickerUsesUtcCalendarDateEvenWestOfUtc() {
         val day = LocalDate.of(2026, 10, 11)
         val value = CalendarDates.toPicker(day)

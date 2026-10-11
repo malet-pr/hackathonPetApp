@@ -7,6 +7,12 @@ enum class ReminderKind(val bit: Int) { Purchase(1), Treatment(2), Overdue(4), P
 data class ReminderEvent(val kind: ReminderKind, val at: Instant)
 
 object ReminderRules {
+    fun canPostpone(plan: TreatmentPlan, now: Instant, zone: ZoneId): Boolean {
+        val local = now.atZone(zone)
+        return plan.status == "PENDING" && !plan.postponedOnce &&
+            local.toLocalDate() == LocalDate.parse(plan.dueDate) && local.toLocalTime() < LocalTime.of(16, 0)
+    }
+
     fun events(plan: TreatmentPlan, zone: ZoneId): List<ReminderEvent> {
         if (plan.status != "PENDING") return emptyList()
         val due = LocalDate.parse(plan.dueDate)

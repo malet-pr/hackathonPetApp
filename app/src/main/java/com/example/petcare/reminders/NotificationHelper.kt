@@ -14,8 +14,9 @@ import com.example.petcare.MainActivity
 import com.example.petcare.R
 import com.example.petcare.data.Pet
 import com.example.petcare.data.TreatmentPlan
+import java.time.Clock
 
-class NotificationHelper(private val context: Context) {
+class NotificationHelper(private val context: Context, private val clock: Clock? = null) {
     private val manager = context.getSystemService(NotificationManager::class.java)
     fun createChannels() {
         manager.createNotificationChannel(NotificationChannel(REAL_CHANNEL, "Pet treatment reminders",
@@ -34,15 +35,25 @@ class NotificationHelper(private val context: Context) {
             ReminderKind.Postponed -> "Your postponed flea treatment reminder."
             ReminderKind.Overdue -> "The treatment planned on ${plan.dueDate} has not been recorded as given."
         }
-        val launch = Intent(context, MainActivity::class.java)
-            .setData("petcare://detail/${plan.id}".toUri())
-            .putExtra("pet_id", pet.id).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pending = PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        manager.notify(tag(plan.id, kind), 1, NotificationCompat.Builder(context, REAL_CHANNEL)
+        fun launch(action: String? = null): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java)
+                .setData("petcare://detail/${plan.id}".toUri()).setAction(action)
+                .putExtra("pet_id", pet.id).putExtra("revision", plan.revision)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+        val notification = NotificationCompat.Builder(context, REAL_CHANNEL)
             .setSmallIcon(R.drawable.ic_notification).setContentTitle("${pet.name} — Flea treatment")
             .setContentText(message).setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setContentIntent(pending).setAutoCancel(true).build())
+            .setContentIntent(launch()).setAutoCancel(true)
+            .addAction(0, "Record treatment", launch("com.example.petcare.RECORD"))
+        val time = clock ?: Clock.systemDefaultZone()
+        if (ReminderRules.canPostpone(plan, time.instant(), time.zone)) {
+            notification.addAction(0, "Postpone until 4 PM", launch("com.example.petcare.POSTPONE"))
+        }
+        manager.notify(tag(plan.id, kind), 1, notification.build())
     }
+
     fun cancelPlan(planId: String) { ReminderKind.entries.forEach { manager.cancel(tag(planId, it), 1) } }
     private fun tag(planId: String, kind: ReminderKind) = "real/$planId/${kind.name}"
     companion object { const val REAL_CHANNEL = "real_treatments" }

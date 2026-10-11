@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petcare.PetCareApp
 import com.example.petcare.data.SettingsStore
+import com.example.petcare.data.TreatmentPlan
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class Screen { Welcome, Home, Pets, AddPet, FirstTreatment, NextDate, Detail }
+enum class Screen { Welcome, Home, Pets, AddPet, FirstTreatment, ConfirmTreatment, NextDate, Detail }
 enum class TitleError { Empty, TooLong, SaveFailed }
 
 class PetCareViewModel(application: Application) : AndroidViewModel(application) {
@@ -44,6 +45,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         private set
     var careSaving by mutableStateOf(false)
         private set
+    var nextTreatmentPrompt by mutableStateOf(false)
     var newPetPrompt by mutableStateOf(false)
     var notificationsEnabled by mutableStateOf(false)
         private set
@@ -62,7 +64,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     fun back() {
         navigate(when (screen) {
             Screen.AddPet -> Screen.Pets
-            Screen.FirstTreatment, Screen.NextDate -> Screen.Detail
+            Screen.FirstTreatment, Screen.ConfirmTreatment, Screen.NextDate -> Screen.Detail
             Screen.Detail -> Screen.Pets
             Screen.Pets -> Screen.Home
             else -> Screen.Welcome
@@ -127,6 +129,96 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
             screen = Screen.Detail
             formError = null
             careSaving = false
+        }
+    }
+    private var confirmingPlanId: String? = null
+    private var confirmingRevision: Int? = null
+    fun startConfirmation(plan: TreatmentPlan) {
+        if (careSaving) return
+        confirmingPlanId = plan.id
+        confirmingRevision = plan.revision
+        medication = ""; dose = ""; source = ""
+        actualDate = LocalDate.now()
+        navigate(Screen.ConfirmTreatment)
+    }
+    fun copyLastTreatment() {
+        if (careSaving) return
+        records.value.firstOrNull { it.petId == selectedPetId }?.let {
+            medication = it.medicationName; dose = it.doseText; source = it.purchaseSource.orEmpty()
+        }
+    }
+    fun saveConfirmation() {
+        if (careSaving) return
+        val petId = selectedPetId ?: return
+        val planId = confirmingPlanId ?: return
+        val revision = confirmingRevision ?: return
+        careSaving = true
+        viewModelScope.launch {
+            try {
+                app.repository.confirmTreatment(petId, planId, revision, actualDate, medication, dose, source)
+            } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
+            catch (error: Exception) {
+                formError = if (error is IllegalArgumentException) error.message else "Could not save the administration. Your entries are still here; try again."
+                careSaving = false
+                return@launch
+            }
+            reconcileAfterChange()
+            screen = Screen.Detail
+            formError = null
+            careSaving = false
+            notice = if (schedulingFailed) "Administration saved. Reminder cleanup needs a retry."
+                else "Administration saved. Remaining reminders for that treatment cancelled."
+            nextTreatmentPrompt = true
+        }
+    }
+    fun scheduleAfterConfirmation() {
+        nextTreatmentPrompt = false
+        // The confirmation transaction has completed, even if the summary Flow has not emitted yet.
+        editingPlanId = null; editingRevision = null; nextDate = null
+        navigate(Screen.NextDate)
+    }
+    fun postpone(plan: TreatmentPlan) {
+        if (careSaving) return
+        careSaving = true
+        viewModelScope.launch {
+            try {
+                app.repository.postpone(plan.id, plan.revision)
+            } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
+            catch (error: Exception) {
+                notice = if (error is IllegalArgumentException) error.message else "Could not postpone the reminder. Try again."
+                careSaving = false
+                return@launch
+            }
+            reconcileAfterChange()
+            notice = if (schedulingFailed) "Postponement saved. Reminder scheduling needs a retry."
+                else if (!notificationsEnabled) "Postponed until 4 PM. Notifications are disabled; check the app."
+                else "Postponed until 4 PM today; delivery time may vary."
+            careSaving = false
+        }
+    }
+    private suspend fun reconcileAfterChange() {
+        notificationsEnabled = app.notifications.enabled()
+        try { schedulingFailed = !app.scheduler.reconcile() }
+        catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
+        catch (_: Exception) { schedulingFailed = true }
+    }
+    fun openNotification(petId: String, planId: String, revision: Int?, action: String?) {
+        if (careSaving) return
+        nextTreatmentPrompt = false
+        newPetPrompt = false
+        openPet(petId)
+        viewModelScope.launch {
+            val plan = try { app.repository.dao.plan(planId) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { notice = "Could not open the reminder. Reopen the app to retry."; return@launch }
+            if (plan == null || plan.petId != petId || plan.status != "PENDING" || plan.revision != revision) {
+                if (action != null) notice = "This reminder is no longer current. Review the saved record."
+                return@launch
+            }
+            when (action) {
+                "com.example.petcare.RECORD" -> startConfirmation(plan)
+                "com.example.petcare.POSTPONE" -> postpone(plan)
+            }
         }
     }
     private var editingPlanId: String? = null

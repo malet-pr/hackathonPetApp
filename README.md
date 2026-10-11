@@ -5,10 +5,11 @@ Kotlin and Jetpack Compose, with an earthy sand, brown, and green palette.
 
 ## Current build
 
-Steps 1–2 implement the welcome screen, persistent custom title, pet creation,
+Steps 1–3 implement the welcome screen, persistent custom title, pet creation,
 and the first flea-treatment record with an optional manually chosen next date, which can be added or edited later. Home cards
 and full details survive reopening. Phone reminders use Android's inexact alarms.
-Confirmation, postponement, photos, and accelerated demo mode belong
+Treatment confirmation preserves previous medication records; reminders can be
+postponed once until 4 PM on the due day. Photos and accelerated demo mode belong
 to later build steps.
 
 ## Open and run
@@ -40,8 +41,8 @@ on JBR 25. No Java 17 runtime is bundled with the app.
 
 Use the gear to change the welcome title. Blank names and names over 60 characters
 are rejected. Save, close and reopen the app: the title should remain. Enter opens
-Home; its menu opens a left drawer. Medication is an empty state; other sections
-are labeled Later. The launcher label remains Pet Care. Your title is stored only
+Home; its menu opens a left drawer. Medication opens pet treatment records; other
+sections are labeled Later. The launcher label remains Pet Care. Your title is stored only
 on this device; uninstalling or clearing app data removes it.
 
 ## Try step 2
@@ -56,7 +57,8 @@ still works. Enable reminders through the contextual prompt or system notificati
 settings. Reminder requests use local device time: purchase at noon four days
 before, treatment at 8 AM, and one overdue reminder at noon the next day. Elapsed
 request times are skipped; Android may delay delivery. Confirmation/postponement
-arrive in step 3. Notification taps currently open the corresponding pet's detail.
+are available in step 3. Notification taps open the corresponding pet's detail;
+Record treatment opens the form, and Postpone rechecks eligibility.
 
 Debug builds offer **Settings → Development check → Test background reminder
 (20 seconds)**. Enable notifications, tap it, and press the phone's Home button.
@@ -69,6 +71,21 @@ Force-stop, power-off and clearing storage prevent normal delivery. Opening agai
 reconciles saved plans; boot, clock/time-zone changes and app updates also trigger
 recovery. Disabling notifications does not replay missed alerts later. Alarm
 scheduling failure keeps the saved record and offers a retry.
+
+## Try step 3
+
+Open a pet with a next treatment and tap **Record treatment**. Medication, dose and
+source start blank; **Copy from last treatment** fills those three fields explicitly,
+leaving dates unchanged and all copied fields editable. Choose the actual administration
+date (today or an earlier date no earlier than the previous treatment), enter what was
+given, and save. Earlier records remain visible. Remaining reminders for the completed
+plan are cancelled. Choose **Not now** in the next-treatment question, or **Yes** to
+schedule another date. Cancelling scheduling never undoes the saved administration.
+
+**Postpone until 4 PM** is available once before 4 PM on the due day. It does not
+record a dose. Both notification actions and in-app actions use the same checked
+operations; stale reminders cannot confirm a dose or replenish postponement. The
+phone's local date/time governs availability. Android can still deliver reminders late.
 
 ## Project guide
 
