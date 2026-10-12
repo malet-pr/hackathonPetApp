@@ -13,10 +13,12 @@ import kotlinx.coroutines.withContext
 /** Copies picker content into private storage; paths from outside this directory are never read or removed. */
 class PhotoStore(private val context: Context) {
     private val directory get() = File(context.filesDir, "photos")
+    private val demoDirectory get() = File(context.filesDir, "demo-photos")
 
-    suspend fun import(uri: Uri): String = withContext(Dispatchers.IO) {
-        directory.mkdirs()
-        val target = File(directory, "${UUID.randomUUID()}.image")
+    suspend fun import(uri: Uri, demo: Boolean = false): String = withContext(Dispatchers.IO) {
+        val destination = if (demo) demoDirectory else directory
+        destination.mkdirs()
+        val target = File(destination, "${UUID.randomUUID()}.image")
         try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 target.outputStream().use { output ->
@@ -59,9 +61,19 @@ class PhotoStore(private val context: Context) {
         Unit
     }
 
+    suspend fun clearDemo() = withContext(Dispatchers.IO) {
+        demoDirectory.listFiles()?.forEach { it.delete() }
+        demoDirectory.delete()
+        Unit
+    }
+
+    fun isDemoPath(path: String): Boolean =
+        File(path).parentFile?.canonicalFile == demoDirectory.canonicalFile
+
     private fun ownedFile(path: String): File? {
         val file = File(path)
-        return file.takeIf { it.parentFile?.canonicalFile == directory.canonicalFile && it.isFile }
+        return file.takeIf { (it.parentFile?.canonicalFile == directory.canonicalFile ||
+            it.parentFile?.canonicalFile == demoDirectory.canonicalFile) && it.isFile }
     }
 
     companion object {

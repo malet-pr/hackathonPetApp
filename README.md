@@ -5,12 +5,13 @@ Kotlin and Jetpack Compose, with an earthy sand, brown, and green palette.
 
 ## Current build
 
-Steps 1–4 implement the welcome screen, persistent custom title and image, pet creation,
+The app implements the welcome screen, persistent custom title and image, pet creation,
 and the first flea-treatment record with an optional manually chosen next date, which can be added or edited later. Home cards
 and full details survive reopening. Phone reminders use Android's inexact alarms.
 Treatment confirmation preserves previous medication records; reminders can be
 postponed once until 4 PM on the due day. Optional pet details and local photos are
-available. Accelerated demo mode belongs to the next build step.
+available. A separate accelerated Demo session lets you practice the full loop without
+editing real pet records or real alarm requests.
 
 ## Open and run
 
@@ -57,14 +58,14 @@ still works. Enable reminders through the contextual prompt or system notificati
 settings. Reminder requests use local device time: purchase at noon four days
 before, treatment at 8 AM, and one overdue reminder at noon the next day. Elapsed
 request times are skipped; Android may delay delivery. Confirmation/postponement
-are available in step 3. Notification taps open the corresponding pet's detail;
+are available through the confirmation flow. Notification taps open the corresponding pet's detail;
 Record treatment opens the form, and Postpone rechecks eligibility.
 
 Debug builds offer **Settings → Development check → Test background reminder
 (20 seconds)**. Enable notifications, tap it, and press the phone's Home button.
 Watch for **Diagnostic — background reminder**. This uses the same real alarm API
 but does not change treatment dates or create treatment records. It is a development
-test, separate from the accelerated sample mode planned for step 5. Inexact delivery
+test, separate from accelerated Demo mode. Inexact delivery
 may take longer than 20 seconds. The diagnostic receiver is absent from release builds.
 
 Force-stop, power-off and clearing storage prevent normal delivery. Opening again
@@ -105,6 +106,43 @@ or camera permission is requested. Local records, settings and photos are
 excluded from Android backup/transfer; uninstalling or clearing storage removes
 them.
 
+## Try step 5: accelerated Demo
+
+Enable phone notifications, then open the gear and turn on **Demo mode**. A fresh
+fictional Demo Fido appears with a previous Medication A record and a chosen next
+date four sample days ahead. A visible **DEMO** banner shows simulated date/time.
+One sample day passes per real minute while the app is visible; leaving the app
+pauses this clock. Demo data is temporary and restarts from the same opening point
+each time you choose **Reset Demo samples**.
+
+The purchase notification appears shortly after entering Demo. Leave the sample
+unconfirmed to see the treatment reminder at about 3 minutes 53 seconds and the
+overdue reminder at about 5 minutes. At treatment time, **Postpone until 4 PM**
+moves that sample reminder about 20 real seconds. Android's notifications are
+clearly titled Demo. You can instead record a treatment with a different medication,
+choose the actual administration date, and verify that the old sample record stays
+in history while the remaining sample alerts clear. Reset to try the overdue path
+after a confirmation path, or the reverse.
+
+In the emulator, drag down from the top edge to open the notification shade.
+Click the notification title or message to open the pet's record. The small arrow
+expands the notification to show **Record treatment** and, during the due morning,
+**Postpone until 4 PM**. At this accelerated speed, the 8 AM–4 PM postponement
+window lasts only 20 real seconds, so have the shade ready near treatment time.
+
+For a demo video, record the full purchase-to-overdue path continuously on the
+emulator, then trim the waiting into a short video with visible edits. Use a fresh
+Demo session to show confirmation and medication change. These foreground sample
+notifications demonstrate the care flow; the debug diagnostic and real inexact
+alarms are the separate background-delivery checks. The clock does not advance
+while the app is hidden, so keep it visible during the five-minute run.
+
+Turn Demo mode off in Settings to return to your real records. Reset and exit
+remove sample notifications and sample photos. Real reminders continue to use
+the real clock and may arrive while Demo is active; opening one returns to real
+mode. Closing and reopening the app starts in real mode. Notification permission
+can still be denied: Demo records and clock work, but phone notifications do not.
+
 ## Project guide
 
 - `app/src/main/java/com/example/petcare/MainActivity.kt`: Android entry point.
@@ -112,6 +150,7 @@ them.
 - `ui/PetCareViewModel.kt`: UI state and save coordination.
 - `data/SettingsStore.kt`: DataStore title and welcome-image persistence.
 - `data/PhotoStore.kt`: private image import and bounded decoding.
+- `demo/AcceleratedClock.kt`, `demo/DemoSession.kt`, `demo/DemoEventPump.kt`: temporary sample clock, records and notification crossings.
 - `data/PetCareDatabase.kt`: Room entities and queries; exported schema in `app/schemas`.
 - `data/TreatmentRepository.kt`: validated, atomic record saves and next-date creation/editing.
 - `reminders/ReminderRules.kt`: local dates, due-time rules, and late-delivery eligibility.

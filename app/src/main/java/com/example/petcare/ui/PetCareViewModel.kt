@@ -9,30 +9,61 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petcare.PetCareApp
 import com.example.petcare.data.SettingsStore
+import com.example.petcare.data.Administration
+import com.example.petcare.data.PetSummary
 import com.example.petcare.data.TreatmentPlan
+import com.example.petcare.data.TreatmentRepository
+import com.example.petcare.demo.DemoSession
+import com.example.petcare.reminders.NotificationHelper
 import java.time.LocalDate
+import java.time.Instant
+import java.time.Clock
+import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 enum class Screen { Welcome, Home, Pets, AddPet, EditPet, FirstTreatment, ConfirmTreatment, NextDate, Detail }
 enum class TitleError { Empty, TooLong, SaveFailed, ImportFailed }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PetCareViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as PetCareApp
     private val settings = app.settingsStore
-    val pets = app.repository.summaries.catch {
+    private val repositoryFlow = MutableStateFlow(app.repository)
+    val activeRepository: TreatmentRepository get() = repositoryFlow.value
+    private var demoSession: DemoSession? = null
+    private var demoTick: Job? = null
+    private var appVisible = false
+    var demoMode by mutableStateOf(false)
+        private set
+    var demoBusy by mutableStateOf(false)
+        private set
+    var demoNow by mutableStateOf<Instant?>(null)
+        private set
+    fun nowDate(): LocalDate = LocalDate.now(demoSession?.clock ?: Clock.systemDefaultZone())
+    fun nowZone(): ZoneId = demoSession?.clock?.zone ?: ZoneId.systemDefault()
+    val pets = repositoryFlow.flatMapLatest { owner -> owner.summaries.map { owner to it } }.catch {
         dataError = "Could not load saved pets. Reopen the app to retry."
-        emit(emptyList())
+        emit(activeRepository to emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-    val records = app.repository.administrations.catch {
+    val records = repositoryFlow.flatMapLatest { owner -> owner.administrations.map { owner to it } }.catch {
         dataError = "Could not load saved treatment records. Reopen the app to retry."
-        emit(emptyList())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        emit(activeRepository to emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), app.repository to emptyList())
+    private fun visiblePets(): List<PetSummary>? = pets.value?.takeIf { it.first === activeRepository }?.second
+    private fun visibleRecords(): List<Administration> = records.value.takeIf { it.first === activeRepository }?.second.orEmpty()
     var selectedPetId by mutableStateOf<String?>(null)
         private set
     var petName by mutableStateOf("")
@@ -64,7 +95,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     var schedulingFailed by mutableStateOf(false)
         private set
     var notice by mutableStateOf<String?>(null)
-    fun enter() { navigate(if (pets.value?.isEmpty() == true && dataError == null) Screen.AddPet else Screen.Home) }
+    fun enter() { navigate(if (visiblePets()?.isEmpty() == true && dataError == null) Screen.AddPet else Screen.Home) }
     fun openPet(id: String) { selectedPetId = id; navigate(Screen.Detail) }
     fun startPet() {
         petName = ""; petBirthDate = null; petOwner = ""; petBreed = ""
@@ -72,7 +103,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         navigate(Screen.AddPet)
     }
     fun startEditPet() {
-        val pet = pets.value?.firstOrNull { it.pet.id == selectedPetId }?.pet ?: return
+        val pet = visiblePets()?.firstOrNull { it.pet.id == selectedPetId }?.pet ?: return
         petName = pet.name; petBirthDate = pet.birthDate?.let(LocalDate::parse)
         petOwner = pet.owner.orEmpty(); petBreed = pet.breed.orEmpty()
         petPhoto = pet.photoPath; originalPetPhoto = pet.photoPath
@@ -81,7 +112,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     fun startTreatment() {
         medication = ""; dose = ""; source = ""
         treatmentPhoto = null
-        actualDate = LocalDate.now(); nextDate = null
+        actualDate = nowDate(); nextDate = null
         newPetPrompt = false
         navigate(Screen.FirstTreatment)
     }
@@ -97,7 +128,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     }
     fun dismissScheduleWarning() { schedulingFailed = false }
     fun refreshNotificationsAndAlarms() {
-        notificationsEnabled = app.notifications.enabled()
+        notificationsEnabled = app.notifications.enabled(if (demoMode) NotificationHelper.DEMO_CHANNEL else NotificationHelper.REAL_CHANNEL)
         viewModelScope.launch {
             try { schedulingFailed = !app.scheduler.reconcile() }
             catch (cancelled: CancellationException) { throw cancelled }
@@ -107,7 +138,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     fun savePet() {
         if (careSaving || photoImporting) return
         if (petName.trim().isEmpty()) { formError = "Enter your pet’s name."; return }
-        if (petBirthDate?.let { it > LocalDate.now() } == true) {
+        if (petBirthDate?.let { it > nowDate() } == true) {
             formError = "Birth date cannot be in the future."; return
         }
         careSaving = true
@@ -116,10 +147,10 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
                 val old = originalPetPhoto
                 val editing = screen == Screen.EditPet
                 val pet = if (editing) {
-                    app.repository.updatePet(requireNotNull(selectedPetId), petName, petBirthDate,
+                    activeRepository.updatePet(requireNotNull(selectedPetId), petName, petBirthDate,
                         petOwner, petBreed, petPhoto)
-                } else app.repository.addPet(petName, petBirthDate, petOwner, petBreed, petPhoto)
-                if (old != null && old != pet.photoPath) app.discardPhotoIfUnreferenced(old)
+                } else activeRepository.addPet(petName, petBirthDate, petOwner, petBreed, petPhoto)
+                if (old != null && old != pet.photoPath) app.discardPhotoIfUnreferenced(old, activeRepository)
                 selectedPetId = pet.id
                 screen = Screen.Detail
                 formError = null
@@ -135,7 +166,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         formError = when {
             medication.trim().isEmpty() -> "Enter the medication name."
             dose.trim().isEmpty() -> "Enter the dose as given."
-            actualDate > LocalDate.now() -> "Administration date cannot be in the future."
+            actualDate > nowDate() -> "Administration date cannot be in the future."
             nextDate?.let { it <= actualDate } == true -> "Next treatment must be after the administration date."
             else -> null
         }
@@ -145,7 +176,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.saveFirstTreatment(petId, actualDate, medication, dose, source, due, treatmentPhoto)
+                activeRepository.saveFirstTreatment(petId, actualDate, medication, dose, source, due, treatmentPhoto)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 formError = if (error is IllegalArgumentException) error.message else "Could not save the treatment. Your entries are still here; try again."
@@ -153,8 +184,8 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
                 return@launch
             }
             // The DB transaction is committed. Scheduling failure is reported separately.
-            notificationsEnabled = app.notifications.enabled()
-            try { schedulingFailed = !app.scheduler.reconcile() }
+            notificationsEnabled = app.notifications.enabled(if (demoMode) NotificationHelper.DEMO_CHANNEL else NotificationHelper.REAL_CHANNEL)
+            try { schedulingFailed = if (demoMode) false else !app.scheduler.reconcile() }
             catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (_: Exception) { schedulingFailed = true }
             notice = if (due == null) "Treatment saved. No next treatment selected; no reminders scheduled."
@@ -175,12 +206,12 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         confirmingRevision = plan.revision
         medication = ""; dose = ""; source = ""
         treatmentPhoto = null
-        actualDate = LocalDate.now()
+        actualDate = nowDate()
         navigate(Screen.ConfirmTreatment)
     }
     fun copyLastTreatment() {
         if (careSaving) return
-        records.value.firstOrNull { it.petId == selectedPetId }?.let {
+        visibleRecords().firstOrNull { it.petId == selectedPetId }?.let {
             medication = it.medicationName; dose = it.doseText; source = it.purchaseSource.orEmpty()
         }
     }
@@ -192,7 +223,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.confirmTreatment(petId, planId, revision, actualDate, medication, dose, source, treatmentPhoto)
+                activeRepository.confirmTreatment(petId, planId, revision, actualDate, medication, dose, source, treatmentPhoto)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 formError = if (error is IllegalArgumentException) error.message else "Could not save the administration. Your entries are still here; try again."
@@ -200,6 +231,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
                 return@launch
             }
             reconcileAfterChange()
+            demoSession?.let { app.notifications.cancelDemoPlan(it.id, planId) }
             screen = Screen.Detail
             treatmentPhoto = null
             formError = null
@@ -220,7 +252,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.postpone(plan.id, plan.revision)
+                activeRepository.postpone(plan.id, plan.revision)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 notice = if (error is IllegalArgumentException) error.message else "Could not postpone the reminder. Try again."
@@ -228,6 +260,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
                 return@launch
             }
             reconcileAfterChange()
+            demoSession?.let { app.notifications.cancelDemoPlan(it.id, plan.id) }
             notice = if (schedulingFailed) "Postponement saved. Reminder scheduling needs a retry."
                 else if (!notificationsEnabled) "Postponed until 4 PM. Notifications are disabled; check the app."
                 else "Postponed until 4 PM today; delivery time may vary."
@@ -235,17 +268,18 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     private suspend fun reconcileAfterChange() {
-        notificationsEnabled = app.notifications.enabled()
-        try { schedulingFailed = !app.scheduler.reconcile() }
+        notificationsEnabled = app.notifications.enabled(if (demoMode) NotificationHelper.DEMO_CHANNEL else NotificationHelper.REAL_CHANNEL)
+        try { schedulingFailed = if (demoMode) false else !app.scheduler.reconcile() }
         catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
         catch (_: Exception) { schedulingFailed = true }
     }
     fun openNotification(petId: String, planId: String, revision: Int?, action: String?) {
         if (careSaving) return
-        nextTreatmentPrompt = false
-        newPetPrompt = false
-        openPet(petId)
         viewModelScope.launch {
+            if (demoMode) endDemo()
+            nextTreatmentPrompt = false
+            newPetPrompt = false
+            openPet(petId)
             val plan = try { app.repository.dao.plan(planId) }
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (_: Exception) { notice = "Could not open the reminder. Reopen the app to retry."; return@launch }
@@ -259,10 +293,119 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+    fun openDemoNotification(sessionId: String, petId: String, planId: String, revision: Int?, action: String?) {
+        val session = demoSession
+        if (session == null || session.id != sessionId) {
+            notice = "That Demo session has ended. Start a fresh one in Settings."
+            return
+        }
+        if (careSaving) return
+        nextTreatmentPrompt = false; newPetPrompt = false
+        openPet(petId)
+        viewModelScope.launch {
+            val plan = session.repository.dao.plan(planId)
+            if (demoSession !== session || plan == null || plan.petId != petId ||
+                plan.status != "PENDING" || plan.revision != revision) {
+                notice = "This Demo reminder is no longer current."
+                return@launch
+            }
+            when (action) {
+                "com.example.petcare.RECORD" -> startConfirmation(plan)
+                "com.example.petcare.POSTPONE" -> postpone(plan)
+            }
+        }
+    }
+
+    fun onForeground() {
+        appVisible = true
+        demoSession?.clock?.resume()
+        startDemoTicker()
+    }
+    fun onBackground() {
+        appVisible = false
+        demoSession?.clock?.pause()
+        demoTick?.cancel(); demoTick = null
+    }
+    fun startDemo() {
+        if (demoBusy || careSaving || photoImporting) return
+        dismissSettings()
+        navigate(Screen.Home)
+        demoBusy = true
+        viewModelScope.launch {
+            try {
+                endDemo()
+                val session = DemoSession.create(app)
+                demoSession = session
+                repositoryFlow.value = session.repository
+                demoMode = true
+                demoNow = session.clock.instant()
+                selectedPetId = null; nextTreatmentPrompt = false; newPetPrompt = false
+                screen = Screen.Home; dataError = null; formError = null
+                notificationsEnabled = app.notifications.enabled(NotificationHelper.DEMO_CHANNEL)
+                if (appVisible) { session.clock.resume(); startDemoTicker() }
+                notice = "Demo started with fresh sample records. One day passes per minute while the app is visible."
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { notice = "Could not start Demo. Your real records are unchanged." }
+            finally { demoBusy = false }
+        }
+    }
+    fun exitDemo() {
+        if (demoBusy || careSaving || photoImporting) return
+        dismissSettings()
+        navigate(Screen.Home)
+        demoBusy = true
+        viewModelScope.launch {
+            try {
+                endDemo()
+                notificationsEnabled = app.notifications.enabled()
+                notice = "Demo ended. Your real records and reminders are unchanged."
+            } finally { demoBusy = false }
+        }
+    }
+    private suspend fun endDemo() {
+        val session = demoSession ?: return
+        demoTick?.cancel(); demoTick = null
+        session.clock.pause()
+        demoSession = null
+        demoMode = false
+        demoNow = null
+        repositoryFlow.value = app.repository
+        app.notifications.cancelAllDemo()
+        selectedPetId = null; nextTreatmentPrompt = false; newPetPrompt = false
+        screen = Screen.Home; dataError = null; formError = null
+        delay(50) // Let the visible Room Flow detach before closing its in-memory database.
+        session.database.close()
+        app.photos.clearDemo()
+    }
+    private fun startDemoTicker() {
+        val session = demoSession ?: return
+        if (!appVisible) return
+        demoTick?.cancel()
+        demoTick = viewModelScope.launch {
+            while (isActive && appVisible && demoSession === session) {
+                val now = session.clock.instant()
+                demoNow = now
+                try { session.events.collect(now).forEach {
+                    app.notifications.postDemo(session.id, it.pet, it.plan, it.kind, session.clock)
+                } }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { notice = "A Demo reminder could not be shown. Reset Demo to try again." }
+                delay(500)
+            }
+        }
+    }
+    override fun onCleared() {
+        demoTick?.cancel()
+        demoSession?.clock?.pause()
+        demoSession?.database?.close()
+        app.notifications.cancelAllDemo()
+        app.applicationScope.launch { app.photos.clearDemo() }
+        super.onCleared()
+    }
     private var editingPlanId: String? = null
     private var editingRevision: Int? = null
     fun startNextDate() {
-        val pet = pets.value?.firstOrNull { it.pet.id == selectedPetId } ?: return
+        val pet = visiblePets()?.firstOrNull { it.pet.id == selectedPetId } ?: return
         editingPlanId = pet.pending?.id
         editingRevision = pet.pending?.revision
         nextDate = pet.pending?.dueDate?.let(LocalDate::parse)
@@ -276,17 +419,18 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.saveNextDate(petId, due, editingPlanId, editingRevision)
+                activeRepository.saveNextDate(petId, due, editingPlanId, editingRevision)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 formError = if (error is IllegalArgumentException) error.message else "Could not save the next date. Try again."
                 careSaving = false
                 return@launch
             }
-            notificationsEnabled = app.notifications.enabled()
-            try { schedulingFailed = !app.scheduler.reconcile() }
+            notificationsEnabled = app.notifications.enabled(if (demoMode) NotificationHelper.DEMO_CHANNEL else NotificationHelper.REAL_CHANNEL)
+            try { schedulingFailed = if (demoMode) false else !app.scheduler.reconcile() }
             catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (_: Exception) { schedulingFailed = true }
+            if (demoMode) editingPlanId?.let { id -> demoSession?.let { app.notifications.cancelDemoPlan(it.id, id) } }
             notice = if (!notificationsEnabled) "Next date saved. Notifications are disabled; check the app for upcoming dates."
                 else if (schedulingFailed) "Next date saved. Reminder scheduling needs a retry."
                 else "Next date saved. Reminders updated; delivery times may vary."
@@ -321,14 +465,17 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         screen = destination; formError = null
     }
     private fun discardStaged(path: String?, saved: String?) {
-        if (path != null && path != saved) viewModelScope.launch { app.discardPhotoIfUnreferenced(path) }
+        if (path != null && path != saved) {
+            val owner = activeRepository
+            viewModelScope.launch { app.discardPhotoIfUnreferenced(path, owner) }
+        }
     }
     fun choosePetPhoto(uri: Uri?) {
         if (uri == null || photoImporting) return
         photoImporting = true
         viewModelScope.launch {
             try {
-                val path = app.photos.import(uri)
+                val path = app.photos.import(uri, demoMode)
                 discardStaged(petPhoto, originalPetPhoto)
                 petPhoto = path; formError = null
             } catch (cancelled: CancellationException) { throw cancelled }
@@ -343,7 +490,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         photoImporting = true
         viewModelScope.launch {
             try {
-                val path = app.photos.import(uri)
+                val path = app.photos.import(uri, demoMode)
                 discardStaged(treatmentPhoto, null)
                 treatmentPhoto = path; formError = null
             } catch (cancelled: CancellationException) { throw cancelled }

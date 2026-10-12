@@ -38,6 +38,9 @@ fun SettingsSheet(model: PetCareViewModel) {
             Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.settings_caption), style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (model.demoMode) Text("Welcome title and image are shared with your real app; sample pet and treatment records are separate.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(value = model.titleDraft, onValueChange = model::editTitle,
                 label = { Text(stringResource(R.string.welcome_title_label)) },
                 modifier = Modifier.fillMaxWidth().testTag("welcome_title_input"),
@@ -65,6 +68,21 @@ fun SettingsSheet(model: PetCareViewModel) {
                     Text(stringResource(if (model.saving) R.string.saving else R.string.save_changes))
                 }
             }
+            HorizontalDivider()
+            Text("Accelerated Demo", style = MaterialTheme.typography.titleMedium)
+            Text("Use fresh fictional records. One sample day passes per real minute while this app is visible. Your real records and phone reminders continue separately.",
+                style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Demo mode", style = MaterialTheme.typography.bodyLarge)
+                Switch(checked = model.demoMode, onCheckedChange = { enabled ->
+                    if (enabled) model.startDemo() else model.exitDemo()
+                }, enabled = !model.demoBusy && !model.saving && !model.careSaving && !model.photoImporting)
+            }
+            if (model.demoMode) OutlinedButton(onClick = model::startDemo,
+                enabled = !model.demoBusy && !model.saving && !model.careSaving && !model.photoImporting) {
+                Text("Reset Demo samples")
+            }
+            if (model.demoBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             TextButton(onClick = {
                 context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
             }) { Text("Phone notification settings") }
@@ -79,8 +97,6 @@ fun SettingsSheet(model: PetCareViewModel) {
                     model.notice = "Diagnostic requested. Press Home and watch for a phone notification."
                 }) { Text("Test background reminder (20 seconds)") }
             }
-            Text(stringResource(R.string.coming_settings), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

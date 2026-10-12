@@ -5,6 +5,7 @@ import com.example.petcare.data.*
 import com.example.petcare.reminders.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import java.io.File
 
 class PetCareApp : Application() {
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -14,11 +15,11 @@ class PetCareApp : Application() {
     val repository by lazy { TreatmentRepository(database) }
     val notifications by lazy { NotificationHelper(this) }
     val scheduler by lazy { AlarmScheduler(this, repository, notifications) }
-    suspend fun discardPhotoIfUnreferenced(path: String?) {
+    suspend fun discardPhotoIfUnreferenced(path: String?, owner: TreatmentRepository = repository) {
         if (path == null) return
         try {
-            if (repository.dao.photoReferenceCount(path) != 0) return
-            if (settingsStore.welcomeImagePath.first() == path) return
+            if (owner.dao.photoReferenceCount(path) != 0) return
+            if (!photos.isDemoPath(path) && settingsStore.welcomeImagePath.first() == path) return
             photos.discard(path)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { /* Uncertain ownership: leave the file rather than remove it. */ }
@@ -26,5 +27,7 @@ class PetCareApp : Application() {
     override fun onCreate() {
         super.onCreate()
         notifications.createChannels()
+        notifications.cancelAllDemo()
+        File(filesDir, "demo-photos").deleteRecursively()
     }
 }

@@ -18,7 +18,8 @@ fun displayDate(iso: String): String = LocalDate.parse(iso).format(DateTimeForma
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, pets: List<PetSummary>?, error: String?,
-    onAdd: () -> Unit, onPet: (String) -> Unit, medicationArea: Boolean = false) {
+    onAdd: () -> Unit, onPet: (String) -> Unit, medicationArea: Boolean = false,
+    today: LocalDate = LocalDate.now()) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(if (medicationArea) "Your companions" else "A little care, every day.",
@@ -38,7 +39,7 @@ fun HomeScreen(modifier: Modifier = Modifier, pets: List<PetSummary>?, error: St
                     Text("${summary.pet.name} — Flea treatment", style = MaterialTheme.typography.titleLarge)
                     Text(summary.last?.let { "Last given: ${displayDate(it.actualDate)}" } ?: "No treatment recorded")
                     Text(summary.pending?.let { "Next chosen date: ${displayDate(it.dueDate)}" } ?: "No treatment scheduled")
-                    if (summary.pending?.dueDate?.let { LocalDate.parse(it) < LocalDate.now() } == true) {
+                    if (summary.pending?.dueDate?.let { LocalDate.parse(it) < today } == true) {
                         Text("Overdue — not recorded as given", color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold)
                     }

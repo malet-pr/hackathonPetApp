@@ -69,6 +69,13 @@ class PhotoPersistenceTest {
             assertEquals(imported, db.careDao().pet(pet.id)?.photoPath)
             assertEquals(imported, settings.welcomeImagePath.first())
 
+            val demoCopy = photos.import(Uri.fromFile(source), demo = true)
+            assertTrue(photos.isDemoPath(demoCopy))
+            assertNotNull(photos.thumbnail(demoCopy))
+            photos.clearDemo()
+            assertFalse(File(demoCopy).exists())
+            assertTrue(File(imported).exists())
+
             val reopenedRepository = TreatmentRepository(db, clock)
             val optionalPet = reopenedRepository.addPet("Luna")
             assertNull(db.careDao().pet(optionalPet.id)?.birthDate)

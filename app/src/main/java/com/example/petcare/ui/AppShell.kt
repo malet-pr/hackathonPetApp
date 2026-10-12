@@ -8,9 +8,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.petcare.R
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,11 +29,12 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
     val title by model.title.collectAsStateWithLifecycle()
     val welcomeImage by model.welcomeImage.collectAsStateWithLifecycle()
     LaunchedEffect(welcomeImage) { model.refreshSettingsImage(welcomeImage) }
-    val pets by model.pets.collectAsStateWithLifecycle()
-    val records by model.records.collectAsStateWithLifecycle()
+    val petSnapshot by model.pets.collectAsStateWithLifecycle()
+    val recordSnapshot by model.records.collectAsStateWithLifecycle()
+    val pets = petSnapshot?.takeIf { it.first === model.activeRepository }?.second
+    val records = recordSnapshot.takeIf { it.first === model.activeRepository }?.second.orEmpty()
     val selected = pets?.firstOrNull { it.pet.id == model.selectedPetId }
     val context = LocalContext.current
-    val owner = LocalLifecycleOwner.current
     var permissionExplanation by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         model.refreshNotificationsAndAlarms()
@@ -43,12 +42,6 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
     fun systemNotificationSettings() {
         context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
     }
-    DisposableEffect(owner) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) model.refreshNotificationsAndAlarms() }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(Unit) { model.refreshNotificationsAndAlarms() }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(model.notice) {
         model.notice?.let { snackbar.showSnackbar(it); model.notice = null }
@@ -102,7 +95,7 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
             snackbarHost = { SnackbarHost(snackbar) },
             topBar = {
                 TopAppBar(
-                    title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    title = { Text(if (model.demoMode) "Demo · $title" else title, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         if (model.screen == Screen.Welcome) {
@@ -124,15 +117,29 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
                 )
             },
         ) { insets ->
-            when (model.screen) {
-                Screen.Welcome -> WelcomeScreen(Modifier.padding(insets), imagePath = welcomeImage,
+            Column(Modifier.fillMaxSize().padding(insets)) {
+                if (model.demoMode) {
+                    val simulated = model.demoNow?.atZone(model.nowZone())?.format(
+                        DateTimeFormatter.ofPattern("MMM d, h:mm a")) ?: "Starting"
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+                        Text("DEMO · $simulated · 1 sample day per minute while visible",
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
+                Box(Modifier.weight(1f)) { when (model.screen) {
+                Screen.Welcome -> WelcomeScreen(Modifier, imagePath = welcomeImage,
                     notificationNotice = notificationNotice, onEnter = model::enter)
-                Screen.Home -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet)
-                Screen.Pets -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet, medicationArea = true)
-                Screen.AddPet, Screen.EditPet -> PetForm(model, Modifier.padding(insets))
-                Screen.FirstTreatment, Screen.ConfirmTreatment -> TreatmentForm(model, selected, Modifier.padding(insets), notificationNotice)
-                Screen.NextDate -> NextDateForm(model, selected, Modifier.padding(insets), notificationNotice)
-                Screen.Detail -> TreatmentDetail(model, selected, records.filter { it.petId == model.selectedPetId }, Modifier.padding(insets))
+                Screen.Home -> HomeScreen(Modifier, pets, model.dataError, model::startPet, model::openPet,
+                    today = model.nowDate())
+                Screen.Pets -> HomeScreen(Modifier, pets, model.dataError, model::startPet, model::openPet,
+                    medicationArea = true, today = model.nowDate())
+                Screen.AddPet, Screen.EditPet -> PetForm(model, Modifier)
+                Screen.FirstTreatment, Screen.ConfirmTreatment -> TreatmentForm(model, selected, Modifier, notificationNotice)
+                Screen.NextDate -> NextDateForm(model, selected, Modifier, notificationNotice)
+                Screen.Detail -> TreatmentDetail(model, selected, records.filter { it.petId == model.selectedPetId }, Modifier)
+                } }
             }
         }
     }

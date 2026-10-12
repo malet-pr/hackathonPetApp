@@ -12,19 +12,19 @@ import com.example.petcare.data.PetSummary
 import com.example.petcare.reminders.CalendarDates
 import java.time.LocalDate
 import java.time.Instant
-import java.time.ZoneId
 import kotlinx.coroutines.delay
 import com.example.petcare.reminders.ReminderRules
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarButton(label: String, date: LocalDate?, enabled: Boolean, onDate: (LocalDate) -> Unit) {
+fun CalendarButton(label: String, date: LocalDate?, enabled: Boolean,
+    defaultDate: LocalDate, onDate: (LocalDate) -> Unit) {
     var open by remember { mutableStateOf(false) }
     OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
         Text("$label: ${date?.let { displayDate(it.toString()) } ?: "Choose date"}")
     }
     if (open) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = CalendarDates.toPicker(date ?: LocalDate.now()))
+        val state = rememberDatePickerState(initialSelectedDateMillis = CalendarDates.toPicker(date ?: defaultDate))
         DatePickerDialog(onDismissRequest = { open = false }, confirmButton = {
             TextButton(onClick = { state.selectedDateMillis?.let { onDate(CalendarDates.fromPicker(it)) }; open = false },
                 enabled = state.selectedDateMillis != null) { Text("Choose") }
@@ -47,7 +47,8 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
             Text("Copy from last treatment")
         }
         notice()
-        CalendarButton("Actual administration", model.actualDate, !model.careSaving) { model.actualDate = it }
+        CalendarButton("Actual administration", model.actualDate, !model.careSaving,
+            defaultDate = model.nowDate()) { model.actualDate = it }
         OutlinedTextField(model.medication, { model.medication = it }, label = { Text("Medication name") },
             enabled = !model.careSaving, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(model.dose, { model.dose = it }, label = { Text("Dose as given") },
@@ -58,7 +59,8 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
             model::chooseTreatmentPhoto, model::clearTreatmentPhoto)
         if (model.photoImporting) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (!confirming) {
-        CalendarButton("Next chosen treatment (optional)", model.nextDate, !model.careSaving) { model.nextDate = it }
+        CalendarButton("Next chosen treatment (optional)", model.nextDate, !model.careSaving,
+            defaultDate = model.nowDate()) { model.nextDate = it }
         if (model.nextDate != null) TextButton(onClick = { model.nextDate = null }, enabled = !model.careSaving) {
             Text("Clear next date")
         }
@@ -90,13 +92,15 @@ fun TreatmentDetail(model: PetCareViewModel, pet: PetSummary?, history: List<Adm
             CareCard {
                 Text("Next chosen date", style = MaterialTheme.typography.titleMedium)
                 Text(pet.pending?.let { displayDate(it.dueDate) } ?: "No treatment scheduled")
-                if (pet.pending?.dueDate?.let { LocalDate.parse(it) < LocalDate.now() } == true)
+                if (pet.pending?.dueDate?.let { LocalDate.parse(it) < model.nowDate() } == true)
                     Text("Overdue — not recorded as given", color = MaterialTheme.colorScheme.error)
                 pet.pending?.let { plan ->
-                    var now by remember(plan.id) { mutableStateOf(Instant.now()) }
-                    LaunchedEffect(plan.id) { while (true) { now = Instant.now(); delay(30_000) } }
+                    var realNow by remember(plan.id) { mutableStateOf(Instant.now()) }
+                    LaunchedEffect(plan.id, model.demoMode) {
+                        while (!model.demoMode) { realNow = Instant.now(); delay(30_000) }
+                    }
                     Button(onClick = { model.startConfirmation(plan) }, enabled = !model.careSaving) { Text("Record treatment") }
-                    if (ReminderRules.canPostpone(plan, now, ZoneId.systemDefault())) {
+                    if (ReminderRules.canPostpone(plan, model.demoNow ?: realNow, model.nowZone())) {
                         OutlinedButton(onClick = { model.postpone(plan) }, enabled = !model.careSaving) { Text("Postpone until 4 PM") }
                     }
                     if (plan.postponedOnce) Text("Reminder postponed once until 4 PM on the chosen date.", style = MaterialTheme.typography.bodySmall)
@@ -147,7 +151,8 @@ fun NextDateForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier, 
         Text(pet?.pet?.name ?: "Loading pet…", style = MaterialTheme.typography.titleLarge)
         Text("Changing the next date updates reminders. Saved administration details stay unchanged.")
         notice()
-        CalendarButton("Next chosen treatment", model.nextDate, !model.careSaving) { model.nextDate = it }
+        CalendarButton("Next chosen treatment", model.nextDate, !model.careSaving,
+            defaultDate = model.nowDate()) { model.nextDate = it }
         Text("Purchase: 4 days before at noon. Treatment: 8 AM. Overdue: next day at noon. Elapsed alerts are skipped; delivery times may vary.",
             style = MaterialTheme.typography.bodySmall)
         model.formError?.let { Text(it, color = MaterialTheme.colorScheme.error) }

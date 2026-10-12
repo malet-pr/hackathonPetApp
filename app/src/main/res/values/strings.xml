@@ -22,5 +22,4 @@
     <string name="title_long">Use 60 characters or fewer.</string>
     <string name="save_failed">Could not save. Your text is still here; please try again.</string>
     <string name="photo_import_failed">Could not read that image. Your previous image is unchanged.</string>
-    <string name="coming_settings">Demo mode will be added in a later build step.</string>
 </resources>

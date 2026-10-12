@@ -16,7 +16,8 @@ fun PetForm(model: PetCareViewModel, modifier: Modifier) {
         Text("Only the name is required. Add or change the other details whenever you like.")
         OutlinedTextField(model.petName, { model.petName = it }, label = { Text("Pet name") },
             singleLine = true, enabled = !model.careSaving && !model.photoImporting, modifier = Modifier.fillMaxWidth())
-        CalendarButton("Birth date (optional)", model.petBirthDate, !model.careSaving && !model.photoImporting) {
+        CalendarButton("Birth date (optional)", model.petBirthDate, !model.careSaving && !model.photoImporting,
+            defaultDate = model.nowDate()) {
             model.petBirthDate = it
         }
         if (model.petBirthDate != null) TextButton(onClick = { model.petBirthDate = null },

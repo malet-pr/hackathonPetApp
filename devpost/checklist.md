@@ -5,9 +5,9 @@ status: approved
 
 # Build Checklist
 
-Build mode: learn. Slices 1–4 are implemented, mechanically verified and approved. The learner will commit and push slice 4. A 4 PM delivery check for the learner's postponed reminder remains pending.
+Build mode: learn. Slices 1–4 are implemented, mechanically verified, approved and committed. The manual postponed-reminder delivery and clearing check is complete. Slice 5 is implemented and mechanically verified; its learner check passed and learner commit is pending.
 
-Session boundary: On 2026-10-12 the learner explicitly asked to start slice 4 while waiting for the 4 PM postponed reminder. They have tried and approved slice 4 in the isolated verification app. Keep the usual app's reminder and saved plan intact; complete its manual delivery/clearing check when it arrives.
+Session boundary: On 2026-10-12 the updated slice-5 APK was installed with real records preserved. The learner observed the Demo overdue alert and confirmed that exiting Demo preserves real records, but reported difficulty opening a notification. The learner successfully retried notification postponement and confirmed all slice-5 checks passed. Await their commit, then complete final review and learning wrap-up; see `build-step-5.md`.
 
 Git prerequisite: Git was initialized with learner approval. Keep /devpost/learner-profile.md and credential files ignored; inspect intended staged changes before each commit. Checklist and learn mode were approved before implementation.
 
@@ -68,7 +68,7 @@ We build small working slices, each adding behavior that can be tried immediatel
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — after slice 1, learner tries navigation/title persistence/colors and feedback is resolved before its commit. This is today's stopping boundary.
-- [ ] Core treatment/reminder loop explored — after slice 3, learner checks the changed-medication history and alert cancellation before image/demo work. This is distinct from the early shell check.
+- [x] Core treatment/reminder loop explored — after slice 3, learner checked changed-medication history, the copy action, postponed delivery and alert cancellation. This is distinct from the early shell check.
 - [ ] Final kick-the-tires exploration and feedback completed — after slice 5, learner explores the complete app and real/demo separation.
 
 In learn mode, each slice additionally waits for its Learner check before its commit. Fast mode retains these planned hands-on checkpoints. The learner extended this session through slice 3 on 2026-10-11.
@@ -92,6 +92,8 @@ Reflection: Not yet offered; personal answers belong only in the ignored learner
 Activity mode: Planned live app/editor guided route; record the actual activity when completed.
 
 ## Revisions
+
+- 2026-10-12: The manual postponed notification arrived about six minutes after 4 PM Nuuk time, within Android's inexact window. After the learner recorded the treatment, the notification and this plan's future alarms cleared while prior history remained. Restored Buenos Aires time and installed the approved step-4 APK in the normal app without losing data. See `build-step-3.md`.
 
 - 2026-10-12: Learner directed work on slice 4 while the postponed reminder's 4 PM manual check is pending. Images were implemented and verified in the separate `.verification` app; the learner also tried and approved the photo flow there. Do not reinstall or alter the normal debug app before that reminder is observed. The learner will make the slice-4 commit and push.
 
@@ -119,10 +121,8 @@ Slice 2 mechanical verification, including the optional-date/date-edit revision,
 
 Slice 3 mechanical verification passed after crash recovery on 2026-10-11; see `build-step-3.md`. Learner reported all requested checks worked as expected and explicitly approved the stage. Approved implementation is checkpointed; the extra manual postponement/alarm-clearing check and core-loop checkpoint remain pending for 2026-10-12 morning.
 
-- 2026-10-12 manual check in progress: learner postponed Practice Fido; Android rescheduled its 4 PM request after correcting the emulator from GMT to Buenos Aires. Delivery and post-confirmation cancellation still pending; see `build-step-3.md`.
+- 2026-10-12 manual check completed: learner postponed Practice Fido, observed delivery, confirmed an actual dose and tried Copy from last treatment. Android cleared that notification and plan's remaining alarms; prior records persisted. See `build-step-3.md`.
 
 ## Pending Hands-on Work
 
-The emulator currently uses `America/Nuuk` temporarily. The postponed Practice Fido alarm is due at 4 PM there (17:00 UTC on 2026-10-12), with inexact delivery. Leave the emulator running and the normal app in the background. When the notification appears, inspect it before acting; then confirm actual administration, decline a next schedule, and verify that the remaining reminders and displayed notification clear while history stays intact. Restore `America/Argentina/Buenos_Aires` immediately after this check.
-
-Slice 4's isolated mechanical and learner checks are complete; see `build-step-4.md`. The learner will commit and push the approved changes. After the reminder check, install the updated normal app to continue from their real records. Do not repeat the already completed slice-4 learner check.
+Slice 5 mechanical and learner checks passed on 2026-10-12. Learner commit pending: `Add isolated accelerated demo and complete care journey`. Tick slice 5 after verifying the commit. Then complete the final app review and learning wrap-up/app map. The normal app has the slice-5 update and remains in `America/Argentina/Buenos_Aires`.

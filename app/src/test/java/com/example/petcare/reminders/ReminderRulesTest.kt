@@ -1,6 +1,7 @@
 package com.example.petcare.reminders
 
 import com.example.petcare.data.TreatmentPlan
+import com.example.petcare.demo.AcceleratedClock
 import java.time.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -39,6 +40,9 @@ class ReminderRulesTest {
         assertEquals(listOf(ReminderKind.Postponed, ReminderKind.Overdue),
             ReminderRules.futureEvents(revised, morning, zone).map { it.kind })
         assertEquals(16, ReminderRules.events(revised, zone)[1].at.atZone(zone).hour)
+        val morningEvent = ReminderRules.events(plan, zone)[1].at
+        val afternoonEvent = ReminderRules.events(revised, zone)[1].at
+        assertEquals(20_000L, Duration.between(morningEvent, afternoonEvent).toMillis() / AcceleratedClock.RATIO)
         assertFalse(ReminderRules.eligible(revised, 0, ReminderKind.Treatment, morning, zone))
     }
     @Test fun datePickerUsesUtcCalendarDateEvenWestOfUtc() {
