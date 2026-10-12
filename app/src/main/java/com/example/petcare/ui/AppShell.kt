@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun AppShell(model: PetCareViewModel = viewModel()) {
     val title by model.title.collectAsStateWithLifecycle()
+    val welcomeImage by model.welcomeImage.collectAsStateWithLifecycle()
+    LaunchedEffect(welcomeImage) { model.refreshSettingsImage(welcomeImage) }
     val pets by model.pets.collectAsStateWithLifecycle()
     val records by model.records.collectAsStateWithLifecycle()
     val selected = pets?.firstOrNull { it.pet.id == model.selectedPetId }
@@ -123,10 +125,11 @@ fun AppShell(model: PetCareViewModel = viewModel()) {
             },
         ) { insets ->
             when (model.screen) {
-                Screen.Welcome -> WelcomeScreen(Modifier.padding(insets), notificationNotice = notificationNotice, onEnter = model::enter)
+                Screen.Welcome -> WelcomeScreen(Modifier.padding(insets), imagePath = welcomeImage,
+                    notificationNotice = notificationNotice, onEnter = model::enter)
                 Screen.Home -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet)
                 Screen.Pets -> HomeScreen(Modifier.padding(insets), pets, model.dataError, model::startPet, model::openPet, medicationArea = true)
-                Screen.AddPet -> PetForm(model, Modifier.padding(insets))
+                Screen.AddPet, Screen.EditPet -> PetForm(model, Modifier.padding(insets))
                 Screen.FirstTreatment, Screen.ConfirmTreatment -> TreatmentForm(model, selected, Modifier.padding(insets), notificationNotice)
                 Screen.NextDate -> NextDateForm(model, selected, Modifier.padding(insets), notificationNotice)
                 Screen.Detail -> TreatmentDetail(model, selected, records.filter { it.petId == model.selectedPetId }, Modifier.padding(insets))

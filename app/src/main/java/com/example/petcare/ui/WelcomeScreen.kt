@@ -14,13 +14,16 @@ import androidx.compose.ui.unit.dp
 import com.example.petcare.R
 
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier, notificationNotice: @Composable () -> Unit = {}, onEnter: () -> Unit) {
+fun WelcomeScreen(modifier: Modifier = Modifier, imagePath: String? = null,
+    notificationNotice: @Composable () -> Unit = {}, onEnter: () -> Unit) {
     Column(modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         notificationNotice()
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Image(painterResource(R.drawable.welcome_dog), stringResource(R.string.welcome_art),
+            if (imagePath == null) Image(painterResource(R.drawable.welcome_dog), stringResource(R.string.welcome_art),
                 Modifier.fillMaxWidth().widthIn(max = 420.dp).aspectRatio(0.9f))
+            else PhotoPreview(imagePath, "Welcome image",
+                Modifier.fillMaxWidth().widthIn(max = 420.dp).aspectRatio(0.9f), large = true)
         }
         Text(stringResource(R.string.welcome_caption), style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onBackground)

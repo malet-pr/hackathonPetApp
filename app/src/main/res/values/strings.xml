@@ -12,7 +12,7 @@
     <string name="providers">Providers</string>
     <string name="later">Later</string>
     <string name="settings_title">Make it yours</string>
-    <string name="settings_caption">Give your pet care space a name.</string>
+    <string name="settings_caption">Choose a name and welcome image for your pet care space.</string>
     <string name="welcome_title_label">Welcome title</string>
     <string name="title_hint">Shown inside the app. The launcher name stays Pet Care.</string>
     <string name="save_changes">Save changes</string>
@@ -21,5 +21,6 @@
     <string name="title_empty">Enter a title.</string>
     <string name="title_long">Use 60 characters or fewer.</string>
     <string name="save_failed">Could not save. Your text is still here; please try again.</string>
-    <string name="coming_settings">Picture customization and demo mode will be added in later build steps.</string>
+    <string name="photo_import_failed">Could not read that image. Your previous image is unchanged.</string>
+    <string name="coming_settings">Demo mode will be added in a later build step.</string>
 </resources>

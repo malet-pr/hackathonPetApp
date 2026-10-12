@@ -5,9 +5,9 @@ status: approved
 
 # Build Checklist
 
-Build mode: learn. Slices 1–3 are implemented, mechanically verified and approved. Learner paused on 2026-10-11; one additional manual check is pending tomorrow morning.
+Build mode: learn. Slices 1–4 are implemented, mechanically verified and approved. The learner will commit and push slice 4. A 4 PM delivery check for the learner's postponed reminder remains pending.
 
-Session boundary: STOP for today at the learner’s request. On resume Monday morning, 2026-10-12 (Buenos Aires), first run the pending manual postponement/alarm-clearing check below. Do not start slice 4 before that check and learner direction.
+Session boundary: On 2026-10-12 the learner explicitly asked to start slice 4 while waiting for the 4 PM postponed reminder. They have tried and approved slice 4 in the isolated verification app. Keep the usual app's reminder and saved plan intact; complete its manual delivery/clearing check when it arrives.
 
 Git prerequisite: Git was initialized with learner approval. Keep /devpost/learner-profile.md and credential files ignored; inspect intended staged changes before each commit. Checklist and learn mode were approved before implementation.
 
@@ -45,7 +45,7 @@ We build small working slices, each adding behavior that can be tried immediatel
   Learner check: Reproduce the A/B scenario, backdate an administration, inspect both records, decline then create a next schedule, edit its date and check postponement availability against the phone’s local time (before 4 PM on the due day, once only). Observe the background diagnostic and review the automated cancellation evidence. Explain any difference from the intended confirmation flow.
   Commit: `Add actual-dose confirmation and reminder lifecycle controls`
 
-- [ ] **4. Keep optional pet details and photos with the records**
+- [x] **4. Keep optional pet details and photos with the records**
   Becomes usable: Save optional birth date/owner/breed and pet photo, attach a treatment photo, and replace the welcome image. Images and settings remain visible after reopening, with usable cancel/failure behavior.
   Why now: Adds the approved personal context and images after the central record/reminder behavior is verified. Reuses one photo-import mechanism across the three uses.
   PRD ref: `prd.md > Pet Record`, `prd.md > Treatment Detail and Entry`, `prd.md > Welcome and Settings`, `prd.md > States and Boundaries`, `prd.md > Acceptance Criteria`
@@ -93,6 +93,10 @@ Activity mode: Planned live app/editor guided route; record the actual activity 
 
 ## Revisions
 
+- 2026-10-12: Learner directed work on slice 4 while the postponed reminder's 4 PM manual check is pending. Images were implemented and verified in the separate `.verification` app; the learner also tried and approved the photo flow there. Do not reinstall or alter the normal debug app before that reminder is observed. The learner will make the slice-4 commit and push.
+
+- 2026-10-12: Learner requested a temporary emulator switch to `America/Nuuk` to bring the pending 4 PM postponed reminder sooner. Recovery rescheduled it for 17:00 UTC, about 35 minutes after the switch, with an inexact window. Restore `America/Argentina/Buenos_Aires` after the delivery/clearing check; keep the real treatment record unchanged. See `build-step-3.md`.
+
 - Slice 3 verification: the emulator was already after 4 PM, so postpone eligibility/recovery/cancellation use injected morning clocks in Android tests without changing the device clock or real treatment dates. The learner can check the hidden after-cutoff action now; the accelerated demo later supplies an interactive postponement path.
 
 - A computer crash interrupted slice 3 verification. Implementation and screenshot survived; resumed from saved files and isolated sample database rather than recreating or clearing normal records.
@@ -115,12 +119,10 @@ Slice 2 mechanical verification, including the optional-date/date-edit revision,
 
 Slice 3 mechanical verification passed after crash recovery on 2026-10-11; see `build-step-3.md`. Learner reported all requested checks worked as expected and explicitly approved the stage. Approved implementation is checkpointed; the extra manual postponement/alarm-clearing check and core-loop checkpoint remain pending for 2026-10-12 morning.
 
-## Next Session — Manual Reminder Check First
+- 2026-10-12 manual check in progress: learner postponed Practice Fido; Android rescheduled its 4 PM request after correcting the emulator from GMT to Buenos Aires. Delivery and post-confirmation cancellation still pending; see `build-step-3.md`.
 
-Learner ended the session and approved step 3 on 2026-10-11, requesting this last check tomorrow morning. No scheduled automation/reminder was requested.
+## Pending Hands-on Work
 
-1. Read emulator time/zone; use its local morning before 4 PM. Buenos Aires zone is appropriate; do not silently change clock/date or saved treatment dates.
-2. Use a test pet with prior administration yesterday and next date today. Inspect that plan’s Android alarm requests before changing it.
-3. Learner postpones once to 4 PM; inspect that old morning identities are removed and the postponed/overdue requests remain. Reopen: the one-use flag remains consumed.
-4. Learner confirms actual administration and declines a next schedule; inspect that pending alarms and displayed notifications for that completed plan are removed. Saved history remains.
-5. Record outcomes, resolve any issue, then finish the core-loop checkpoint. Await learner direction before slice 4 (optional pet details/photos).
+The emulator currently uses `America/Nuuk` temporarily. The postponed Practice Fido alarm is due at 4 PM there (17:00 UTC on 2026-10-12), with inexact delivery. Leave the emulator running and the normal app in the background. When the notification appears, inspect it before acting; then confirm actual administration, decline a next schedule, and verify that the remaining reminders and displayed notification clear while history stays intact. Restore `America/Argentina/Buenos_Aires` immediately after this check.
+
+Slice 4's isolated mechanical and learner checks are complete; see `build-step-4.md`. The learner will commit and push the approved changes. After the reminder check, install the updated normal app to continue from their real records. Do not repeat the already completed slice-4 learner check.

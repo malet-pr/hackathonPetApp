@@ -54,6 +54,9 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
             enabled = !model.careSaving, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(model.source, { model.source = it }, label = { Text("Where obtained (optional)") },
             enabled = !model.careSaving, singleLine = true, modifier = Modifier.fillMaxWidth())
+        PhotoInput("Treatment photo (optional)", model.treatmentPhoto, !model.careSaving && !model.photoImporting,
+            model::chooseTreatmentPhoto, model::clearTreatmentPhoto)
+        if (model.photoImporting) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (!confirming) {
         CalendarButton("Next chosen treatment (optional)", model.nextDate, !model.careSaving) { model.nextDate = it }
         if (model.nextDate != null) TextButton(onClick = { model.nextDate = null }, enabled = !model.careSaving) {
@@ -64,9 +67,10 @@ fun TreatmentForm(model: PetCareViewModel, pet: PetSummary?, modifier: Modifier,
             style = MaterialTheme.typography.bodySmall)
         }
         model.formError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(onClick = { if (confirming) model.saveConfirmation() else model.saveFirstTreatment() }, enabled = !model.careSaving && pet != null,
+        Button(onClick = { if (confirming) model.saveConfirmation() else model.saveFirstTreatment() },
+            enabled = !model.careSaving && !model.photoImporting && pet != null,
             modifier = Modifier.fillMaxWidth()) { Text(if (model.careSaving) "Saving…" else "Save treatment") }
-        OutlinedButton(onClick = model::back, enabled = !model.careSaving) { Text("Cancel") }
+        OutlinedButton(onClick = model::back, enabled = !model.careSaving && !model.photoImporting) { Text("Cancel") }
     }
 }
 
@@ -78,6 +82,11 @@ fun TreatmentDetail(model: PetCareViewModel, pet: PetSummary?, history: List<Adm
         Text("Flea treatment", style = MaterialTheme.typography.titleLarge)
         if (pet == null) CircularProgressIndicator()
         else {
+            pet.pet.photoPath?.let { PhotoPreview(it, "Photo of ${pet.pet.name}", Modifier.fillMaxWidth().height(180.dp)) }
+            val extras = listOfNotNull(pet.pet.birthDate?.let { "Born: ${displayDate(it)}" },
+                pet.pet.owner?.let { "Owner: $it" }, pet.pet.breed?.let { "Breed: $it" })
+            extras.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            OutlinedButton(onClick = model::startEditPet, enabled = !model.careSaving) { Text("Edit pet details") }
             CareCard {
                 Text("Next chosen date", style = MaterialTheme.typography.titleMedium)
                 Text(pet.pending?.let { displayDate(it.dueDate) } ?: "No treatment scheduled")
@@ -110,6 +119,15 @@ fun TreatmentDetail(model: PetCareViewModel, pet: PetSummary?, history: List<Adm
                             Text("Dose: ${record.doseText}")
                             Text("Where obtained: ${record.purchaseSource ?: "Not recorded"}")
                             Text("Administered on: ${displayDate(record.actualDate)}")
+                            record.photoPath?.let {
+                                var photoOpen by remember(record.id) { mutableStateOf(false) }
+                                PhotoPreview(it, "Photo for ${record.medicationName}", Modifier.fillMaxWidth().height(180.dp))
+                                TextButton(onClick = { photoOpen = true }) { Text("View larger photo") }
+                                if (photoOpen) AlertDialog(onDismissRequest = { photoOpen = false },
+                                    title = { Text("Treatment photo") },
+                                    text = { PhotoPreview(it, "Photo for ${record.medicationName}", Modifier.fillMaxWidth().height(340.dp), large = true) },
+                                    confirmButton = { TextButton(onClick = { photoOpen = false }) { Text("Close") } })
+                            }
                         }
                         Text(if (expanded) "Hide details" else "Show details", color = MaterialTheme.colorScheme.primary)
                     }

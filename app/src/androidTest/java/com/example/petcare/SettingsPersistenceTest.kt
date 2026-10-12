@@ -21,11 +21,15 @@ class SettingsPersistenceTest {
         val first = SettingsStore(PreferenceDataStoreFactory.create(scope = firstScope) { file })
         assertEquals("Pet Care", first.title.first())
         first.saveTitle("  Fido and Friends  ")
+        first.saveAppearance("Fido and Friends", "/private/welcome.image")
         firstScope.coroutineContext[Job]!!.cancelAndJoin()
         val secondScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         try {
             val reopened = SettingsStore(PreferenceDataStoreFactory.create(scope = secondScope) { file })
             assertEquals("Fido and Friends", reopened.title.first())
+            assertEquals("/private/welcome.image", reopened.welcomeImagePath.first())
+            reopened.saveTitle("New title")
+            assertEquals("/private/welcome.image", reopened.welcomeImagePath.first())
         } finally {
             secondScope.coroutineContext[Job]!!.cancelAndJoin()
             file.delete()

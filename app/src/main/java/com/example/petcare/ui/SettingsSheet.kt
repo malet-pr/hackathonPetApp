@@ -48,15 +48,19 @@ fun SettingsSheet(model: PetCareViewModel) {
                         TitleError.Empty -> R.string.title_empty
                         TitleError.TooLong -> R.string.title_long
                         TitleError.SaveFailed -> R.string.save_failed
+                        TitleError.ImportFailed -> R.string.photo_import_failed
                         null -> R.string.title_hint
                     }))
                 })
+            PhotoInput("Welcome image", model.welcomeImageDraft, !model.saving && !model.photoImporting,
+                model::chooseWelcomeImage, model::clearWelcomeImage)
+            if (model.photoImporting) LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = model::dismissSettings, enabled = !model.saving,
+                OutlinedButton(onClick = model::dismissSettings, enabled = !model.saving && !model.photoImporting,
                     modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
                     Text(stringResource(R.string.cancel))
                 }
-                Button(onClick = model::saveSettings, enabled = !model.saving,
+                Button(onClick = model::saveSettings, enabled = !model.saving && !model.photoImporting,
                     modifier = Modifier.weight(1f).testTag("save_settings"), shape = RoundedCornerShape(14.dp)) {
                     Text(stringResource(if (model.saving) R.string.saving else R.string.save_changes))
                 }

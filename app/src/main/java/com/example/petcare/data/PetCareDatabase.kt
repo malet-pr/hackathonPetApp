@@ -62,7 +62,11 @@ interface PetCareDao {
     @Query("SELECT * FROM treatment_plans WHERE petId = :petId AND status = 'PENDING'")
     suspend fun pending(petId: String): TreatmentPlan?
     @Query("SELECT * FROM treatment_plans") suspend fun allPlans(): List<TreatmentPlan>
+    @Query("SELECT (SELECT COUNT(*) FROM pets WHERE photoPath = :path) + " +
+        "(SELECT COUNT(*) FROM administrations WHERE photoPath = :path)")
+    suspend fun photoReferenceCount(path: String): Int
     @Insert suspend fun insertPet(pet: Pet)
+    @Update suspend fun updatePet(pet: Pet)
     @Insert suspend fun insertAdministration(administration: Administration)
     @Insert suspend fun insertPlan(plan: TreatmentPlan)
     @Update suspend fun updatePlan(plan: TreatmentPlan)

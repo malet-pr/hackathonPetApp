@@ -68,3 +68,15 @@ The emulator was after 4 PM during the direct walkthrough; the in-app postpone a
 ## Session Handoff
 
 Stop for today at learner request. Resume Monday morning, 2026-10-12 (Buenos Aires), with the manual postponement and future-alarm-clearing test described in checklist.md, before slice 4. Inspect Android alarms before/after learner actions rather than waiting for future delivery. No automation was requested or created.
+
+## 2026-10-12 manual reminder check — pending delivery
+
+Learner postponed Practice Fido's October 12 treatment and saw the in-app success message. Read-only Room snapshot after the action showed its pending plan at revision 1, `postponedOnce=1`, treatment handled bit set, and `needsReconciliation=0`. Android's alarm inventory contained one app reminder at October 12, 4 PM local time and no outstanding 8 AM reminder for that day; other saved pets have their own later alarms. The app's notification permission is granted.
+
+The emulator had still been set to GMT despite the learner expecting Buenos Aires time. At 15:58 GMT the postponed request pointed to 16:00 GMT. Corrected only the emulator's time zone through Android Settings to Buenos Aires, keeping automatic date/time on. The device then showed 12:59 -03 and Android rescheduled the postponed request to 16:00 local (epoch 1791831600000 ms, 19:00 UTC), with an inexact delivery window up to about one hour. The app was returned to foreground afterward. No treatment record or due date was edited for this correction.
+
+Still pending: observe whether the notification arrives while the app is backgrounded; capture the alarm/notification state before the learner confirms administration; then verify confirmation clears remaining plan alarms/displayed notifications and preserves history. Do not mark the core-loop checkpoint complete from scheduling evidence alone.
+
+At the learner's request on 2026-10-12, temporarily changed only the emulator time zone from `America/Argentina/Buenos_Aires` to `America/Nuuk` using Android's alarm service; automatic time zone was already disabled and automatic date/time was not changed. At 16:25 UTC the emulator showed 15:25 -01 in Nuuk. Recovery recalculated the postponed request from 16:00 Buenos Aires (19:00 UTC) to 16:00 Nuuk (17:00 UTC; epoch `1791824400000`), then `dumpsys alarm` showed it registered with an inexact window of about 25 minutes. This makes the alarm due about 35 minutes after the switch; it does not make delivery exact. No treatment record or due date was edited.
+
+**Restore the emulator to `America/Argentina/Buenos_Aires` after the notification/clearing check.** Do not restore before observing delivery, because recovery would move the pending 4 PM request back to 19:00 UTC. If the check is resumed in another turn, first verify the current zone and alarm/notification state. The normal debug app was not reinstalled while step 4 was tested separately.

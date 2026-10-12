@@ -5,12 +5,12 @@ Kotlin and Jetpack Compose, with an earthy sand, brown, and green palette.
 
 ## Current build
 
-Steps 1–3 implement the welcome screen, persistent custom title, pet creation,
+Steps 1–4 implement the welcome screen, persistent custom title and image, pet creation,
 and the first flea-treatment record with an optional manually chosen next date, which can be added or edited later. Home cards
 and full details survive reopening. Phone reminders use Android's inexact alarms.
 Treatment confirmation preserves previous medication records; reminders can be
-postponed once until 4 PM on the due day. Photos and accelerated demo mode belong
-to later build steps.
+postponed once until 4 PM on the due day. Optional pet details and local photos are
+available. Accelerated demo mode belongs to the next build step.
 
 ## Open and run
 
@@ -87,12 +87,31 @@ record a dose. Both notification actions and in-app actions use the same checked
 operations; stale reminders cannot confirm a dose or replenish postponement. The
 phone's local date/time governs availability. Android can still deliver reminders late.
 
+## Try step 4
+
+Add a pet with only a name, or supply an optional birth date, owner, breed and
+photo. Birth dates cannot be in the future. Open its full record and use **Edit pet
+details** to change those fields later. Choose an existing phone image for an
+administered treatment; it appears in that record and has a larger view. The
+**Copy from last treatment** action leaves photos blank.
+
+Use the gear on any screen to choose a welcome image. Save changes, close and
+reopen the app, and check that the welcome image, pet photo and treatment photo
+remain. Cancel a picker or the form to keep the previous saved image. Removing
+the welcome image and saving restores the default illustration. Selected images
+are copied to private app storage; the app never deletes the phone's original.
+Images are limited to 10 MB and displayed as reduced-size previews. No gallery
+or camera permission is requested. Local records, settings and photos are
+excluded from Android backup/transfer; uninstalling or clearing storage removes
+them.
+
 ## Project guide
 
 - `app/src/main/java/com/example/petcare/MainActivity.kt`: Android entry point.
 - `ui/AppShell.kt`: Compose navigation and shared screen frame.
 - `ui/PetCareViewModel.kt`: UI state and save coordination.
-- `data/SettingsStore.kt`: DataStore title persistence.
+- `data/SettingsStore.kt`: DataStore title and welcome-image persistence.
+- `data/PhotoStore.kt`: private image import and bounded decoding.
 - `data/PetCareDatabase.kt`: Room entities and queries; exported schema in `app/schemas`.
 - `data/TreatmentRepository.kt`: validated, atomic record saves and next-date creation/editing.
 - `reminders/ReminderRules.kt`: local dates, due-time rules, and late-delivery eligibility.

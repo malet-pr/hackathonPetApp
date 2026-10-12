@@ -1,6 +1,7 @@
 package com.example.petcare.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,13 +13,14 @@ import com.example.petcare.data.TreatmentPlan
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class Screen { Welcome, Home, Pets, AddPet, FirstTreatment, ConfirmTreatment, NextDate, Detail }
-enum class TitleError { Empty, TooLong, SaveFailed }
+enum class Screen { Welcome, Home, Pets, AddPet, EditPet, FirstTreatment, ConfirmTreatment, NextDate, Detail }
+enum class TitleError { Empty, TooLong, SaveFailed, ImportFailed }
 
 class PetCareViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as PetCareApp
@@ -34,6 +36,16 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     var selectedPetId by mutableStateOf<String?>(null)
         private set
     var petName by mutableStateOf("")
+    var petBirthDate by mutableStateOf<LocalDate?>(null)
+    var petOwner by mutableStateOf("")
+    var petBreed by mutableStateOf("")
+    var petPhoto by mutableStateOf<String?>(null)
+        private set
+    private var originalPetPhoto: String? = null
+    var treatmentPhoto by mutableStateOf<String?>(null)
+        private set
+    var photoImporting by mutableStateOf(false)
+        private set
     var medication by mutableStateOf("")
     var dose by mutableStateOf("")
     var source by mutableStateOf("")
@@ -54,9 +66,21 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     var notice by mutableStateOf<String?>(null)
     fun enter() { navigate(if (pets.value?.isEmpty() == true && dataError == null) Screen.AddPet else Screen.Home) }
     fun openPet(id: String) { selectedPetId = id; navigate(Screen.Detail) }
-    fun startPet() { petName = ""; navigate(Screen.AddPet) }
+    fun startPet() {
+        petName = ""; petBirthDate = null; petOwner = ""; petBreed = ""
+        petPhoto = null; originalPetPhoto = null
+        navigate(Screen.AddPet)
+    }
+    fun startEditPet() {
+        val pet = pets.value?.firstOrNull { it.pet.id == selectedPetId }?.pet ?: return
+        petName = pet.name; petBirthDate = pet.birthDate?.let(LocalDate::parse)
+        petOwner = pet.owner.orEmpty(); petBreed = pet.breed.orEmpty()
+        petPhoto = pet.photoPath; originalPetPhoto = pet.photoPath
+        navigate(Screen.EditPet)
+    }
     fun startTreatment() {
         medication = ""; dose = ""; source = ""
+        treatmentPhoto = null
         actualDate = LocalDate.now(); nextDate = null
         newPetPrompt = false
         navigate(Screen.FirstTreatment)
@@ -64,6 +88,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
     fun back() {
         navigate(when (screen) {
             Screen.AddPet -> Screen.Pets
+            Screen.EditPet -> Screen.Detail
             Screen.FirstTreatment, Screen.ConfirmTreatment, Screen.NextDate -> Screen.Detail
             Screen.Detail -> Screen.Pets
             Screen.Pets -> Screen.Home
@@ -80,16 +105,26 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     fun savePet() {
-        if (careSaving) return
+        if (careSaving || photoImporting) return
         if (petName.trim().isEmpty()) { formError = "Enter your pet’s name."; return }
+        if (petBirthDate?.let { it > LocalDate.now() } == true) {
+            formError = "Birth date cannot be in the future."; return
+        }
         careSaving = true
         viewModelScope.launch {
             try {
-                val pet = app.repository.addPet(petName)
+                val old = originalPetPhoto
+                val editing = screen == Screen.EditPet
+                val pet = if (editing) {
+                    app.repository.updatePet(requireNotNull(selectedPetId), petName, petBirthDate,
+                        petOwner, petBreed, petPhoto)
+                } else app.repository.addPet(petName, petBirthDate, petOwner, petBreed, petPhoto)
+                if (old != null && old != pet.photoPath) app.discardPhotoIfUnreferenced(old)
                 selectedPetId = pet.id
                 screen = Screen.Detail
                 formError = null
-                newPetPrompt = true
+                newPetPrompt = !editing
+                petPhoto = null; originalPetPhoto = null
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { formError = "Could not save your pet. Your entries are still here; try again." }
             finally { careSaving = false }
@@ -110,7 +145,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.saveFirstTreatment(petId, actualDate, medication, dose, source, due)
+                app.repository.saveFirstTreatment(petId, actualDate, medication, dose, source, due, treatmentPhoto)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 formError = if (error is IllegalArgumentException) error.message else "Could not save the treatment. Your entries are still here; try again."
@@ -127,6 +162,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
                 else if (schedulingFailed) "Treatment saved. Reminder scheduling needs a retry."
                 else "Treatment saved. Reminder delivery times may vary."
             screen = Screen.Detail
+            treatmentPhoto = null
             formError = null
             careSaving = false
         }
@@ -138,6 +174,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         confirmingPlanId = plan.id
         confirmingRevision = plan.revision
         medication = ""; dose = ""; source = ""
+        treatmentPhoto = null
         actualDate = LocalDate.now()
         navigate(Screen.ConfirmTreatment)
     }
@@ -155,7 +192,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         careSaving = true
         viewModelScope.launch {
             try {
-                app.repository.confirmTreatment(petId, planId, revision, actualDate, medication, dose, source)
+                app.repository.confirmTreatment(petId, planId, revision, actualDate, medication, dose, source, treatmentPhoto)
             } catch (cancelled: CancellationException) { careSaving = false; throw cancelled }
             catch (error: Exception) {
                 formError = if (error is IllegalArgumentException) error.message else "Could not save the administration. Your entries are still here; try again."
@@ -164,6 +201,7 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
             }
             reconcileAfterChange()
             screen = Screen.Detail
+            treatmentPhoto = null
             formError = null
             careSaving = false
             notice = if (schedulingFailed) "Administration saved. Reminder cleanup needs a retry."
@@ -258,27 +296,104 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     val title = settings.title.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsStore.DEFAULT_TITLE)
+    val welcomeImage = settings.welcomeImagePath.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     var screen by mutableStateOf(Screen.Welcome)
         private set
     var settingsOpen by mutableStateOf(false)
         private set
     var titleDraft by mutableStateOf("")
         private set
+    var welcomeImageDraft by mutableStateOf<String?>(null)
+        private set
+    private var originalWelcomeImage: String? = null
+    private var welcomeImageEdited = false
     var titleError by mutableStateOf<TitleError?>(null)
         private set
     var saving by mutableStateOf(false)
         private set
 
-    fun navigate(destination: Screen) { if (!careSaving) { screen = destination; formError = null } }
+    fun navigate(destination: Screen) {
+        if (careSaving || photoImporting) return
+        if (screen != destination) {
+            if (screen == Screen.AddPet || screen == Screen.EditPet) discardStaged(petPhoto, originalPetPhoto)
+            if (screen == Screen.FirstTreatment || screen == Screen.ConfirmTreatment) discardStaged(treatmentPhoto, null)
+        }
+        screen = destination; formError = null
+    }
+    private fun discardStaged(path: String?, saved: String?) {
+        if (path != null && path != saved) viewModelScope.launch { app.discardPhotoIfUnreferenced(path) }
+    }
+    fun choosePetPhoto(uri: Uri?) {
+        if (uri == null || photoImporting) return
+        photoImporting = true
+        viewModelScope.launch {
+            try {
+                val path = app.photos.import(uri)
+                discardStaged(petPhoto, originalPetPhoto)
+                petPhoto = path; formError = null
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) {
+                formError = (error as? IOException)?.message ?: "Could not import this photo. Your previous photo is unchanged."
+            } finally { photoImporting = false }
+        }
+    }
+    fun clearPetPhoto() { if (photoImporting) return; discardStaged(petPhoto, originalPetPhoto); petPhoto = null }
+    fun chooseTreatmentPhoto(uri: Uri?) {
+        if (uri == null || photoImporting) return
+        photoImporting = true
+        viewModelScope.launch {
+            try {
+                val path = app.photos.import(uri)
+                discardStaged(treatmentPhoto, null)
+                treatmentPhoto = path; formError = null
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) {
+                formError = (error as? IOException)?.message ?: "Could not import this photo. Try another one."
+            } finally { photoImporting = false }
+        }
+    }
+    fun clearTreatmentPhoto() { if (photoImporting) return; discardStaged(treatmentPhoto, null); treatmentPhoto = null }
     fun showSettings() {
         titleDraft = title.value
+        originalWelcomeImage = welcomeImage.value
+        welcomeImageDraft = originalWelcomeImage
+        welcomeImageEdited = false
         titleError = null
         settingsOpen = true
     }
+    fun refreshSettingsImage(path: String?) {
+        if (settingsOpen && !welcomeImageEdited && !saving) {
+            originalWelcomeImage = path
+            welcomeImageDraft = path
+        }
+    }
     fun editTitle(value: String) { titleDraft = value; titleError = null }
-    fun dismissSettings() { if (!saving) settingsOpen = false }
+    fun chooseWelcomeImage(uri: Uri?) {
+        if (uri == null || photoImporting) return
+        photoImporting = true
+        viewModelScope.launch {
+            try {
+                val path = app.photos.import(uri)
+                discardStaged(welcomeImageDraft, originalWelcomeImage)
+                welcomeImageDraft = path; titleError = null
+                welcomeImageEdited = true
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { titleError = TitleError.ImportFailed }
+            finally { photoImporting = false }
+        }
+    }
+    fun clearWelcomeImage() {
+        if (photoImporting) return
+        discardStaged(welcomeImageDraft, originalWelcomeImage)
+        welcomeImageDraft = null; welcomeImageEdited = true
+    }
+    fun dismissSettings() {
+        if (saving || photoImporting) return
+        discardStaged(welcomeImageDraft, originalWelcomeImage)
+        settingsOpen = false
+    }
     fun saveSettings() {
-        if (saving) return
+        if (saving || photoImporting) return
         val value = titleDraft.trim()
         titleError = when {
             value.isEmpty() -> TitleError.Empty
@@ -289,8 +404,14 @@ class PetCareViewModel(application: Application) : AndroidViewModel(application)
         saving = true
         viewModelScope.launch {
             try {
-                settings.saveTitle(value)
+                if (welcomeImageEdited) {
+                    val previous = settings.welcomeImagePath.first()
+                    settings.saveAppearance(value, welcomeImageDraft)
+                    if (previous != null && previous != welcomeImageDraft)
+                        app.discardPhotoIfUnreferenced(previous)
+                } else settings.saveTitle(value)
                 settingsOpen = false
+                originalWelcomeImage = welcomeImageDraft
             } catch (_: IOException) {
                 titleError = TitleError.SaveFailed
             } finally {

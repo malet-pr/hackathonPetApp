@@ -20,13 +20,29 @@ class TreatmentRepository(val database: PetCareDatabase, private val clock: Cloc
     }
     val administrations = dao.observeAdministrations()
 
-    suspend fun addPet(name: String): Pet {
+    suspend fun addPet(name: String, birthDate: LocalDate? = null, owner: String = "", breed: String = "",
+        photoPath: String? = null): Pet {
         require(name.trim().isNotEmpty()) { "Enter your pet’s name." }
-        return Pet(name = name.trim()).also { dao.insertPet(it) }
+        require(birthDate == null || birthDate <= LocalDate.now(clock ?: Clock.systemDefaultZone())) {
+            "Birth date cannot be in the future."
+        }
+        return Pet(name = name.trim(), birthDate = birthDate?.toString(), owner = owner.trim().ifEmpty { null },
+            breed = breed.trim().ifEmpty { null }, photoPath = photoPath).also { dao.insertPet(it) }
+    }
+
+    suspend fun updatePet(id: String, name: String, birthDate: LocalDate?, owner: String, breed: String,
+        photoPath: String?): Pet = database.withTransaction {
+        require(name.trim().isNotEmpty()) { "Enter your pet’s name." }
+        require(birthDate == null || birthDate <= LocalDate.now(clock ?: Clock.systemDefaultZone())) {
+            "Birth date cannot be in the future."
+        }
+        val pet = requireNotNull(dao.pet(id)) { "This pet could not be found." }
+        pet.copy(name = name.trim(), birthDate = birthDate?.toString(), owner = owner.trim().ifEmpty { null },
+            breed = breed.trim().ifEmpty { null }, photoPath = photoPath).also { dao.updatePet(it) }
     }
 
     suspend fun saveFirstTreatment(petId: String, actual: LocalDate, medication: String, dose: String,
-        source: String, next: LocalDate?): TreatmentPlan? = reminderLock.withLock {
+        source: String, next: LocalDate?, photoPath: String? = null): TreatmentPlan? = reminderLock.withLock {
         require(medication.trim().isNotEmpty()) { "Enter the medication name." }
         require(dose.trim().isNotEmpty()) { "Enter the dose as given." }
         require(actual <= LocalDate.now(clock ?: Clock.systemDefaultZone())) { "Administration date cannot be in the future." }
@@ -36,7 +52,8 @@ class TreatmentRepository(val database: PetCareDatabase, private val clock: Cloc
             require(dao.history(petId).isEmpty() && dao.pending(petId) == null) { "This pet already has a treatment record." }
             val administration = Administration(petId = petId, actualDate = actual.toString(),
                 medicationName = medication.trim(), doseText = dose.trim(),
-                purchaseSource = source.trim().ifEmpty { null }, recordedAt = clock?.millis() ?: System.currentTimeMillis())
+                purchaseSource = source.trim().ifEmpty { null }, photoPath = photoPath,
+                recordedAt = clock?.millis() ?: System.currentTimeMillis())
             dao.insertAdministration(administration)
             next?.let {
                 TreatmentPlan(petId = petId, sourceAdministrationId = administration.id, dueDate = it.toString())
@@ -70,7 +87,7 @@ class TreatmentRepository(val database: PetCareDatabase, private val clock: Cloc
     }
 
     suspend fun confirmTreatment(petId: String, planId: String, revision: Int, actual: LocalDate,
-        medication: String, dose: String, source: String): Administration = reminderLock.withLock {
+        medication: String, dose: String, source: String, photoPath: String? = null): Administration = reminderLock.withLock {
         require(medication.trim().isNotEmpty()) { "Enter the medication name." }
         require(dose.trim().isNotEmpty()) { "Enter the dose as given." }
         require(actual <= LocalDate.now(clock ?: Clock.systemDefaultZone())) { "Administration date cannot be in the future." }
@@ -85,7 +102,8 @@ class TreatmentRepository(val database: PetCareDatabase, private val clock: Cloc
             }
             val administration = Administration(petId = petId, actualDate = actual.toString(),
                 medicationName = medication.trim(), doseText = dose.trim(),
-                purchaseSource = source.trim().ifEmpty { null }, recordedAt = clock?.millis() ?: System.currentTimeMillis(),
+                purchaseSource = source.trim().ifEmpty { null }, photoPath = photoPath,
+                recordedAt = clock?.millis() ?: System.currentTimeMillis(),
                 completedPlanId = plan.id)
             dao.insertAdministration(administration)
             dao.updatePlan(plan.copy(status = "COMPLETED", needsReconciliation = true))
