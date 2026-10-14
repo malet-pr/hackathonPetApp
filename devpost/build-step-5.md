@@ -1,6 +1,6 @@
 # Step 5 — Isolated accelerated Demo
 
-Status: implementation, mechanical checks and learner check complete; learner commit and final review pending.
+Status: implementation, mechanical checks and learner check complete; committed as `bf1d470`; final review and source-led learning wrap-up complete.
 Checked 2026-10-12 on Pixel 10 emulator, Android API 37.2, Buenos Aires time zone.
 
 ## Implemented
@@ -28,3 +28,5 @@ The emulator has separately delivered a real postponed alarm about six minutes a
 Completed check: in the normal app, open Settings and start Demo. Check the fictional record and changing banner, then watch purchase and treatment notifications. Try Postpone once during the simulated due morning; it should return about 20 real seconds later. Record a different medication and chosen actual date, inspect the preserved Medication A history and absence of remaining alerts. Reset for an overdue case without confirming. Exit and check that the user's real records remain, and that no Demo notification stays visible. Report anything broken or confusing before the step-5 commit and final review.
 
 2026-10-12 learner sign-off: all requested Demo checks passed, including changed medication with Medication A retained in history, postponement, overdue notification, and preservation of real records after exit. The notification interaction was the final missing check. Learner will make the slice-5 commit personally, consistent with previous slices.
+
+Checkpoint verified: `bf1d470` (`Add isolated accelerated demo and complete care journey`), clean working tree before recording completion, HEAD matching the upstream tracking ref. Learner reports committed and pushed.

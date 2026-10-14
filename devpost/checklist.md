@@ -5,9 +5,9 @@ status: approved
 
 # Build Checklist
 
-Build mode: learn. Slices 1–4 are implemented, mechanically verified, approved and committed. The manual postponed-reminder delivery and clearing check is complete. Slice 5 is implemented and mechanically verified; its learner check passed and learner commit is pending.
+Build mode: learn. Slices 1–4 are implemented, mechanically verified, approved and committed. The manual postponed-reminder delivery and clearing check is complete. Slice 5 is implemented and mechanically verified; its learner check passed and it is committed as `bf1d470`.
 
-Session boundary: On 2026-10-12 the updated slice-5 APK was installed with real records preserved. The learner observed the Demo overdue alert and confirmed that exiting Demo preserves real records, but reported difficulty opening a notification. The learner successfully retried notification postponement and confirmed all slice-5 checks passed. Await their commit, then complete final review and learning wrap-up; see `build-step-5.md`.
+Session boundary: On 2026-10-12 the updated slice-5 APK was installed with real records preserved. The learner observed the Demo overdue alert and confirmed that exiting Demo preserves real records, but reported difficulty opening a notification. The learner successfully retried notification postponement and confirmed all slice-5 checks passed. Commit `bf1d470` is verified and matches the local upstream tracking ref. Continue with final review and learning wrap-up; see `build-step-5.md`.
 
 Git prerequisite: Git was initialized with learner approval. Keep /devpost/learner-profile.md and credential files ignored; inspect intended staged changes before each commit. Checklist and learn mode were approved before implementation.
 
@@ -55,7 +55,7 @@ We build small working slices, each adding behavior that can be tried immediatel
   Learner check: Select a pet picture, attach a box photo to a treatment, replace the welcome picture, reopen the app, and inspect all three. Cancel selection and verify existing saved pictures remain intact.
   Commit: `Add persistent pet details and optional record photos`
 
-- [ ] **5. Practice the complete care loop in isolated accelerated demo mode**
+- [x] **5. Practice the complete care loop in isolated accelerated demo mode**
   Becomes usable: Enter labeled sample mode through settings, observe one day per minute while visible, receive real Demo notifications, confirm/postpone or let a sample go overdue, reset, and return to untouched real records/reminders.
   Why now: Reuses the verified care rules and notification formatting. Demonstrates the entire loop without replacing background verification with simulation or risking real records.
   PRD ref: `prd.md > Accelerated Demo Mode`, `prd.md > Administration Confirmation`, `prd.md > Acceptance Criteria`
@@ -69,27 +69,27 @@ We build small working slices, each adding behavior that can be tried immediatel
 
 - [x] Early usable behavior explored — after slice 1, learner tries navigation/title persistence/colors and feedback is resolved before its commit. This is today's stopping boundary.
 - [x] Core treatment/reminder loop explored — after slice 3, learner checked changed-medication history, the copy action, postponed delivery and alert cancellation. This is distinct from the early shell check.
-- [ ] Final kick-the-tires exploration and feedback completed — after slice 5, learner explores the complete app and real/demo separation.
+- [x] Final kick-the-tires exploration and feedback completed — after slice 5, learner explores the complete app and real/demo separation.
 
 In learn mode, each slice additionally waits for its Learner check before its commit. Fast mode retains these planned hands-on checkpoints. The learner extended this session through slice 3 on 2026-10-11.
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship
 
-No final-review feedback yet. Add agreed fixes here as unchecked tasks when the learner explores the completed POC; verify, commit, and have affected behavior retried before checking them off.
+2026-10-12: learner explicitly confirmed the POC is ready. Pet deletion was noticed and intentionally deferred to a future version; it was outside the approved scope. No final-review implementation changes requested. All slice checks passed; see build-step documents.
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: Not started. Use the actual administration-save-to-reminder path or another real moment connected to the learner's Kotlin/Android understanding goal.
-Route and stops: To be chosen from finished code, covering two or three relevant locations without a quiz.
-Edit outcome: Not yet offered; offer one optional safe edit or connect prior practice if already completed.
-Reflection: Not yet offered; personal answers belong only in the ignored learner profile.
-Activity mode: Planned live app/editor guided route; record the actual activity when completed.
+Activity and evidence: Completed source-led review on 2026-10-12. The form/ViewModel/repository confirmation route was presented; the learner chose independent Kotlin-file inspection and asked about ExperimentalMaterial3Api opt-in and repository.reminderLock.withLock. Actual declarations and call sites were checked to explain compiler opt-in, coroutine Mutex coordination, and Room transaction atomicity. The learner then said they were ready to move on. No claim of a live guided editor tour or retained code edit.
+Route and stops: Reference route in the map: `TreatmentScreens.kt > TreatmentForm`, `PetCareViewModel.kt > saveConfirmation`, `TreatmentRepository.kt > confirmTreatment`. Actual discussion additionally covered `CalendarButton`, `reminderLock`, `AlarmScheduler.reconcile`, and `database.withTransaction`.
+Edit outcome: Safe label edit offered; learner chose independent source inspection and then moved on. No edit retained.
+Reflection: Optional transfer question skipped after the learner requested moving on; source questions supplied the learning activity. Personal commentary is not reproduced in public artifacts.
+Activity mode: Independent source inspection with code-grounded explanations and a brief recap. Map generated against `bf1d470`, file paths checked, no external dependencies or scripts, and linked/open requested in Codex. Browser rendering was not verified.
 
 ## Revisions
 
@@ -125,4 +125,4 @@ Slice 3 mechanical verification passed after crash recovery on 2026-10-11; see `
 
 ## Pending Hands-on Work
 
-Slice 5 mechanical and learner checks passed on 2026-10-12. Learner commit pending: `Add isolated accelerated demo and complete care journey`. Tick slice 5 after verifying the commit. Then complete the final app review and learning wrap-up/app map. The normal app has the slice-5 update and remains in `America/Argentina/Buenos_Aires`.
+Slice 5 mechanical and learner checks passed on 2026-10-12. Verified checkpoint: `bf1d470` (`Add isolated accelerated demo and complete care journey`); working tree was clean and HEAD matched its upstream tracking ref. Final review and source-led learning wrap-up are complete. Commit the completion documents and app map, then continue with `6-ship`. The normal app has the slice-5 update and remains in `America/Argentina/Buenos_Aires`.
